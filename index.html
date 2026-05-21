@@ -588,7 +588,7 @@ const PROJECTS = [
 ];
 
 // ── State ────────────────────────────────────────────────────
-let S = { mode: 'sc', view: 'home', activeDrawing: 0, project: null, inProject: false, showProjectDrop: false, projectTab: 'overview', dwgTab: 'details', dwgView: 'register', activeMarkup: null, activeTool: 'select', progStep: null, progTopTab: 'schedule', progSubTab: 'master', ganttView: 'week', ganttFilter: 'all', ganttCollapsed: {}, ganttExpanded: null, jobsView: 'grid', jobsExpanded: {} };
+let S = { mode: 'sc', view: 'home', activeDrawing: 0, project: null, inProject: false, showProjectDrop: false, projectTab: 'overview', dwgTab: 'details', dwgView: 'register', activeMarkup: null, activeTool: 'select', progStep: null, progTopTab: 'schedule', progSubTab: 'master', ganttView: 'week', ganttFilter: 'all', ganttCollapsed: {}, ganttExpanded: null, jobsView: 'grid', jobsExpanded: {}, showFeatureFlags: false, featureFlags: { procureproSchedule: false } };
 const go      = (v) => { S = { ...S, view: v }; render(); };
 const setMode = (m) => {
   const defaultView = m === 'sc' ? 'home' : 'con-home';
@@ -2524,7 +2524,7 @@ function vConProgramme() {
           <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px">Create New Programme</div>
           <div style="font-size:12px;color:var(--text-3)">Upload a quote or existing schedule to build a live programme with AI</div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div style="display:grid;grid-template-columns:${S.featureFlags.procureproSchedule ? '1fr 1fr 1fr' : '1fr 1fr'};gap:16px">
           <div style="background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:28px;cursor:pointer;transition:border-color .15s,box-shadow .15s" onmouseover="this.style.borderColor='var(--purple)';this.style.boxShadow='0 0 0 4px rgba(101,89,255,.07)'" onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='none'" data-prog-step="upload-quote">
             <div style="width:52px;height:52px;border-radius:14px;background:var(--purple-bg);display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:18px">📄</div>
             <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px">Upload Quote Document</div>
@@ -2548,6 +2548,100 @@ function vConProgramme() {
                 </div>`).join('')}
             </div>
             <button class="btn btn-c" style="width:100%;justify-content:center" data-prog-step="upload-excel">Browse Files →</button>
+          </div>
+
+          ${S.featureFlags.procureproSchedule ? `
+          <!-- ProcurePro card -->
+          <div style="background:#0B1F3A;border:2px solid #1e3a5f;border-radius:14px;padding:28px;cursor:pointer;position:relative;overflow:hidden;transition:border-color .15s,box-shadow .15s" onmouseover="this.style.borderColor='#3b82f6';this.style.boxShadow='0 0 0 4px rgba(59,130,246,.12)'" onmouseout="this.style.borderColor='#1e3a5f';this.style.boxShadow='none'" data-prog-step="upload-procurepro">
+            <!-- Subtle grid bg -->
+            <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 28px,rgba(255,255,255,.02) 28px,rgba(255,255,255,.02) 29px),repeating-linear-gradient(90deg,transparent,transparent 28px,rgba(255,255,255,.02) 28px,rgba(255,255,255,.02) 29px);pointer-events:none"></div>
+            <!-- Integration badge -->
+            <div style="position:absolute;top:14px;right:14px;font-size:9px;font-weight:700;background:rgba(59,130,246,.2);color:#93c5fd;padding:2px 8px;border-radius:6px;letter-spacing:.05em">INTEGRATION</div>
+            <!-- ProcurePro logo area -->
+            <div style="margin-bottom:18px">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+                <div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🏗️</div>
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:#93c5fd;text-transform:uppercase;letter-spacing:.08em;margin-bottom:1px">Powered by</div>
+                  <div style="font-size:18px;font-weight:800;color:white;letter-spacing:-.3px">ProcurePro</div>
+                </div>
+              </div>
+            </div>
+            <div style="font-size:15px;font-weight:700;color:white;margin-bottom:8px">Import from ProcurePro</div>
+            <p style="font-size:12px;color:rgba(255,255,255,.55);margin:0 0 18px;line-height:1.7">Use your submitted tender or quote from ProcurePro as the source document. SC AI reads your ProcurePro output and builds a complete programme automatically.</p>
+            <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:22px">
+              ${['Reads ProcurePro tender & quote exports','Maps line items to construction phases','Preserves trade pricing & scope data','Auto-generates programme from submission'].map(f =>
+                `<div style="display:flex;align-items:flex-start;gap:7px;font-size:11px;color:rgba(255,255,255,.6)">
+                  <span style="color:#60a5fa;font-weight:700;flex-shrink:0;margin-top:1px">✓</span>${f}
+                </div>`).join('')}
+            </div>
+            <button class="btn" style="width:100%;justify-content:center;background:#1d4ed8;border-color:#2563eb;color:white" data-prog-step="upload-procurepro">Import from ProcurePro →</button>
+          </div>` : ''}
+        </div>
+      </div></div>`;
+    }
+
+    if (step === 'upload-procurepro') {
+      return `<div class="page"><div class="gen-page">
+        <div style="margin-bottom:20px"><h1 class="page-t">Programme</h1></div>
+        ${topTabBar}
+        ${subTabBar}
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:20px;font-size:12px;color:var(--text-3)">
+          <span style="cursor:pointer;color:var(--purple)" data-prog-step="">← AI Builder</span>
+          <span>/</span>
+          <span style="color:var(--text)">Import from ProcurePro</span>
+        </div>
+        ${stepper(0)}
+        <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start">
+          <div>
+            <!-- ProcurePro branded header -->
+            <div style="background:#0B1F3A;border-radius:14px;padding:20px 24px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+              <div style="display:flex;align-items:center;gap:14px">
+                <div style="width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🏗️</div>
+                <div>
+                  <div style="font-size:10px;font-weight:700;color:#93c5fd;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">Powered by</div>
+                  <div style="font-size:20px;font-weight:800;color:white;letter-spacing:-.3px">ProcurePro</div>
+                </div>
+              </div>
+              <button class="btn" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:white;font-size:11px;gap:5px;white-space:nowrap">🔗 Connect ProcurePro Account</button>
+            </div>
+
+            <!-- Upload area -->
+            <div style="border:2px dashed #d1d5db;border-radius:14px;padding:48px 32px;text-align:center;background:#fafafa;margin-bottom:16px">
+              <div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,#1d4ed8,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 16px">🏗️</div>
+              <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">Drop your ProcurePro export here</div>
+              <div style="font-size:12px;color:var(--text-3);margin-bottom:6px">PDF quote, tender submission, or ProcurePro .xlsx export — max 50 MB</div>
+              <div style="font-size:11px;color:var(--text-4);margin-bottom:24px">Export from ProcurePro: Tender → Documents → Export to PDF / Excel</div>
+              <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+                <button class="btn btn-p" data-prog-step="analysing">Browse Files</button>
+                <button class="btn" style="background:#1d4ed8;border-color:#2563eb;color:white" data-prog-step="analysing">Use ProcurePro Sample →</button>
+                <button class="btn btn-o" data-prog-step="analysing">Use sample quote →</button>
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--text-4);text-align:center">Click "Use ProcurePro Sample" to walk through the workflow with a pre-loaded ProcurePro tender export</div>
+          </div>
+
+          <!-- Right panel -->
+          <div>
+            <div style="background:#0B1F3A;border-radius:14px;padding:16px 18px;margin-bottom:12px">
+              <div style="font-size:11px;font-weight:700;color:#93c5fd;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">What SC AI extracts from ProcurePro</div>
+              ${[
+                { ico:'📋', t:'Tender line items',    s:'Scope, quantities, trade breakdown' },
+                { ico:'💰', t:'Pricing & allowances', s:'Materials, labour, subcontractor rates' },
+                { ico:'📅', t:'Programme phases',     s:'Trade sequence derived from BOQ order' },
+                { ico:'🏗️', t:'Site conditions',     s:'Location, access, staging requirements' },
+                { ico:'⚡', t:'Critical path',        s:'Longest dependency chain auto-calculated' },
+              ].map(r => `<div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start">
+                <span style="font-size:15px;flex-shrink:0">${r.ico}</span>
+                <div><div style="font-size:12px;font-weight:600;color:white">${r.t}</div><div style="font-size:11px;color:rgba(255,255,255,.45)">${r.s}</div></div>
+              </div>`).join('')}
+            </div>
+            <!-- Connect integration CTA -->
+            <div style="background:rgba(59,130,246,.08);border:1.5px solid rgba(59,130,246,.2);border-radius:12px;padding:14px 16px">
+              <div style="font-size:11px;font-weight:700;color:#3b82f6;margin-bottom:5px">🔗 ProcurePro Integration</div>
+              <p style="font-size:11px;color:var(--text-3);margin:0 0 10px;line-height:1.5">Connect your ProcurePro account to pull tender documents directly — no manual export needed.</p>
+              <button class="btn" style="font-size:11px;height:30px;padding:0 14px;background:#1d4ed8;border-color:#2563eb;color:white;width:100%;justify-content:center">Connect Integration</button>
+            </div>
           </div>
         </div>
       </div></div>`;
@@ -3342,6 +3436,61 @@ function view() {
   }
 }
 
+// ── Feature Flags Panel ──────────────────────────────────────
+const FEATURE_FLAGS = [
+  {
+    id: 'procureproSchedule',
+    name: 'ProcurePro Schedule Input',
+    desc: 'Import a quote or tender submitted through ProcurePro as the starting point for AI schedule creation.',
+    badge: 'Integration',
+    badgeCol: '#0ea5e9',
+  },
+];
+
+function featureFlagsPanel() {
+  if (!S.showFeatureFlags) {
+    return `<button id="ff-toggle" style="position:fixed;bottom:24px;right:24px;z-index:9999;background:#1F2533;color:white;border:none;border-radius:12px;padding:9px 16px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;box-shadow:0 4px 16px rgba(0,0,0,.25)">
+      🚩 <span>Feature Flags</span>
+      ${Object.values(S.featureFlags).some(Boolean) ? `<span style="width:7px;height:7px;border-radius:50%;background:#6559FF;flex-shrink:0"></span>` : ''}
+    </button>`;
+  }
+  return `
+  <div style="position:fixed;bottom:24px;right:24px;z-index:9999;width:340px;background:white;border:1.5px solid var(--border);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.15);overflow:hidden">
+    <!-- Header -->
+    <div style="background:#1F2533;padding:14px 18px;display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:14px">🚩</span>
+        <span style="font-size:13px;font-weight:700;color:white">Feature Flags</span>
+        <span style="font-size:10px;background:rgba(101,89,255,.4);color:#a5b4fc;padding:1px 7px;border-radius:8px;font-weight:600">PROTOTYPE</span>
+      </div>
+      <button id="ff-toggle" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:16px;cursor:pointer;line-height:1;padding:0">✕</button>
+    </div>
+    <!-- Flags list -->
+    <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+      ${FEATURE_FLAGS.map(f => `
+      <div style="background:#f8f9fb;border:1.5px solid ${S.featureFlags[f.id] ? 'rgba(101,89,255,.25)' : 'var(--border)'};border-radius:12px;padding:12px 14px;transition:border-color .2s">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;flex-wrap:wrap">
+              <span style="font-size:12px;font-weight:700;color:var(--text)">${f.name}</span>
+              <span style="font-size:9px;font-weight:700;background:${f.badgeCol}20;color:${f.badgeCol};padding:1px 6px;border-radius:6px">${f.badge}</span>
+            </div>
+            <p style="font-size:11px;color:var(--text-3);margin:0;line-height:1.5">${f.desc}</p>
+          </div>
+          <!-- Toggle switch -->
+          <div data-ff-toggle="${f.id}" style="flex-shrink:0;width:40px;height:22px;border-radius:11px;background:${S.featureFlags[f.id] ? 'var(--purple)' : '#d1d5db'};cursor:pointer;position:relative;transition:background .2s;margin-top:2px">
+            <div style="position:absolute;top:3px;left:${S.featureFlags[f.id] ? '21px' : '3px'};width:16px;height:16px;border-radius:50%;background:white;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .2s"></div>
+          </div>
+        </div>
+        ${S.featureFlags[f.id] ? `<div style="margin-top:8px;padding:6px 10px;background:rgba(101,89,255,.07);border-radius:8px;font-size:10px;color:var(--purple);font-weight:600">✓ Active — visible in Programme → AI Builder</div>` : ''}
+      </div>`).join('')}
+    </div>
+    <div style="padding:10px 14px 14px;border-top:1px solid var(--border)">
+      <p style="font-size:10px;color:var(--text-4);margin:0;text-align:center">Feature flags are for demo purposes only. Changes apply immediately.</p>
+    </div>
+  </div>`;
+}
+
 // ── Render ───────────────────────────────────────────────────
 function render() {
   document.getElementById('app').innerHTML = `
@@ -3352,7 +3501,8 @@ function render() {
         ${projectBar()}
         ${view()}
       </div>
-    </div>`;
+    </div>
+    ${featureFlagsPanel()}`;
 
   // Nav clicks (sidebar + generic [data-view] except back-button which has data-exit-project)
   document.querySelectorAll('[data-view]:not([data-exit-project])').forEach(el =>
@@ -3589,6 +3739,23 @@ function render() {
     el.addEventListener('click', e => {
       e.stopPropagation();
       S = { ...S, progStep: null, project: 'north-harbour', inProject: true, view: 'con-programme', progTopTab: 'schedule', progSubTab: 'master' };
+      render();
+    })
+  );
+
+  // Feature flags panel toggle
+  document.getElementById('ff-toggle')?.addEventListener('click', e => {
+    e.stopPropagation();
+    S = { ...S, showFeatureFlags: !S.showFeatureFlags };
+    render();
+  });
+
+  // Feature flag individual toggles
+  document.querySelectorAll('[data-ff-toggle]').forEach(el =>
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = el.dataset.ffToggle;
+      S = { ...S, featureFlags: { ...S.featureFlags, [id]: !S.featureFlags[id] } };
       render();
     })
   );
