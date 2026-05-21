@@ -590,12 +590,9 @@ const PROJECTS = [
 // ── State ────────────────────────────────────────────────────
 let S = { mode: 'sc', view: 'home', activeDrawing: 0, project: null, inProject: false, showProjectDrop: false, projectTab: 'overview', dwgTab: 'details', dwgView: 'register', activeMarkup: null, activeTool: 'select', progStep: null, progSource: null, progTopTab: 'schedule', progSubTab: 'master', ganttView: 'week', ganttFilter: 'all', ganttCollapsed: {}, ganttExpanded: null, jobsView: 'grid', jobsExpanded: {}, showDemoPanel: false, showProcureProModal: false, phase: 1, featureFlags: { procureproSchedule: false } };
 
-// Set phase and auto-apply feature flags
+// Set phase (does not affect feature flags)
 function setPhase(n) {
-  const flags = {
-    procureproSchedule: n >= 2,
-  };
-  S = { ...S, phase: n, featureFlags: flags };
+  S = { ...S, phase: n };
   render();
 }
 const go      = (v) => { S = { ...S, view: v }; render(); };
@@ -3709,14 +3706,22 @@ function demoControlsPanel() {
       </div>
     </div>
 
-    <!-- Feature flags (auto-managed by phase) -->
-    <div style="padding:12px 14px 14px;margin-top:8px;border-top:1px solid var(--border)">
-      <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Feature Flags <span style="font-weight:500;text-transform:none;letter-spacing:0">(auto-managed by phase)</span></div>
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#f8f9fb;border-radius:8px">
-        <span style="font-size:11px;color:var(--text-2)">ProcurePro Schedule Input</span>
-        <div style="width:36px;height:20px;border-radius:10px;background:${S.featureFlags.procureproSchedule ? '#0ea5e9' : '#d1d5db'};position:relative;flex-shrink:0">
-          <div style="position:absolute;top:2px;left:${S.featureFlags.procureproSchedule ? '18px' : '2px'};width:16px;height:16px;border-radius:50%;background:white;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>
-        </div>
+    <!-- Feature flags (independent toggles) -->
+    <div style="padding:12px 14px 14px;margin-top:4px;border-top:1px solid var(--border)">
+      <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Feature Flags</div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        ${[
+          { id:'procureproSchedule', label:'ProcurePro Schedule Input', badge:'Integration', badgeCol:'#0ea5e9' },
+        ].map(f => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:#f8f9fb;border:1.5px solid ${S.featureFlags[f.id] ? f.badgeCol+'44' : 'var(--border)'};border-radius:10px">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:2px">${f.label}</div>
+            <span style="font-size:9px;font-weight:700;background:${f.badgeCol}18;color:${f.badgeCol};padding:1px 6px;border-radius:5px">${f.badge}</span>
+          </div>
+          <div data-ff-toggle="${f.id}" style="flex-shrink:0;width:40px;height:22px;border-radius:11px;background:${S.featureFlags[f.id] ? f.badgeCol : '#d1d5db'};cursor:pointer;position:relative;transition:background .2s;margin-left:12px">
+            <div style="position:absolute;top:3px;left:${S.featureFlags[f.id] ? '21px' : '3px'};width:16px;height:16px;border-radius:50%;background:white;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .2s"></div>
+          </div>
+        </div>`).join('')}
       </div>
     </div>
   </div>`;
@@ -4007,6 +4012,16 @@ function render() {
       const n = parseInt(el.dataset.setPhase);
       const phase = PHASES.find(p => p.n === n);
       if (phase && !phase.comingSoon) setPhase(n);
+    })
+  );
+
+  // Feature flag toggles (independent of phase)
+  document.querySelectorAll('[data-ff-toggle]').forEach(el =>
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = el.dataset.ffToggle;
+      S = { ...S, featureFlags: { ...S.featureFlags, [id]: !S.featureFlags[id] } };
+      render();
     })
   );
 }
