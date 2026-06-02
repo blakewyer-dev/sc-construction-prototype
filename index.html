@@ -475,6 +475,25 @@
     .mb4 { margin-bottom: 16px; }
     .mb6 { margin-bottom: 24px; }
     .muted { color: var(--text-3); }
+
+    /* ── Mobile Overlay ── */
+    @keyframes blink { 0%,100%{opacity:.3} 50%{opacity:1} }
+    @keyframes mob-in { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
+    .mobile-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:2000;backdrop-filter:blur(6px); }
+    .mobile-frame { width:375px;height:812px;background:#f3f4f6;border-radius:50px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 50px 100px rgba(0,0,0,0.6),0 0 0 1px rgba(255,255,255,0.08),inset 0 0 0 1px rgba(255,255,255,0.04);animation:mob-in .25s ease; }
+    .mobile-body { flex:1;overflow-y:auto;background:white;scroll-behavior:smooth; }
+    .mob-chip { background:white;border:1.5px solid #6559FF;color:#6559FF;border-radius:20px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s; }
+    .mob-chip:hover { background:#6559FF;color:white; }
+    .mob-card { background:#f9fafb;border-radius:14px;padding:13px;margin-top:8px;border:1px solid #f0f0f0; }
+    .mob-check-row { display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f3f4f6;cursor:pointer; }
+    .mob-check-row:last-of-type { border-bottom:none; }
+    .mob-check-box { width:22px;height:22px;border-radius:6px;border:2px solid #d1d5db;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:white;flex-shrink:0;transition:all .15s; }
+    .mob-check-box.checked { background:#6559FF;border-color:#6559FF; }
+    .mob-advance-btn { width:100%;margin-top:12px;background:#6559FF;color:white;border:none;border-radius:12px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s; }
+    .mob-advance-btn:hover { opacity:.9; }
+    .mob-done-btn { background:#6559FF;color:white;border:none;border-radius:12px;padding:11px 28px;font-size:13px;font-weight:700;cursor:pointer; }
+    .mob-open-btn { display:flex;align-items:center;gap:6px;background:#1F2533;color:white;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .15s; }
+    .mob-open-btn:hover { opacity:.85; }
   </style>
 </head>
 <body>
@@ -736,7 +755,7 @@ const WORKERS = [
 ];
 
 // ── State ────────────────────────────────────────────────────
-let S = { mode: 'sc', view: 'home', activeDrawing: 0, project: null, inProject: false, showProjectDrop: false, projectTab: 'overview', dwgTab: 'details', dwgView: 'register', activeMarkup: null, activeTool: 'select', progStep: null, progSource: null, progTopTab: 'schedule', progSubTab: 'master', ganttView: 'week', ganttFilter: 'all', ganttCollapsed: {}, ganttExpanded: null, jobsView: 'grid', jobsExpanded: {}, showDemoPanel: false, showProcureProModal: false, phase: 1, featureFlags: { procureproSchedule: false, workerPassport: false }, passportView: 'dashboard', passportWorker: null, passportVerifyStep: 0, passportVerifyWorker: null, passportInductionStep: 0, swmsView: 'register', swmsDoc: null, swmsTab: 'document', swmsKioskCount: 0 };
+let S = { mode: 'sc', view: 'home', activeDrawing: 0, project: null, inProject: false, showProjectDrop: false, projectTab: 'overview', dwgTab: 'details', dwgView: 'register', activeMarkup: null, activeTool: 'select', progStep: null, progSource: null, progTopTab: 'schedule', progSubTab: 'master', ganttView: 'week', ganttFilter: 'all', ganttCollapsed: {}, ganttExpanded: null, jobsView: 'grid', jobsExpanded: {}, showDemoPanel: false, showProcureProModal: false, phase: 1, featureFlags: { procureproSchedule: false, workerPassport: false }, passportView: 'dashboard', passportWorker: null, passportVerifyStep: 0, passportVerifyWorker: null, passportInductionStep: 0, swmsView: 'register', swmsDoc: null, swmsTab: 'document', swmsKioskCount: 0, showMobile: false, mobileTab: 'home', mobileFlow: null, mobileStep: 0, mobileMsgs: [], mobileTyping: false, mobileChecked: [], mobileDeclared: [], mobileSigned: false };
 
 // Set phase (does not affect feature flags)
 function setPhase(n) {
@@ -824,6 +843,10 @@ function topbar() {
         <input placeholder="Search" />
       </div>
       <div class="tb-actions">
+        <button class="mob-open-btn" id="mobile-open-btn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.5" stroke-linecap="round" stroke-width="3"/></svg>
+          Mobile
+        </button>
         <button class="tb-btn">${I.sparkle}</button>
         <button class="tb-btn">${I.help}</button>
         <button class="tb-btn">${I.bell}<span class="tb-dot"></span></button>
@@ -4828,6 +4851,253 @@ function demoControlsPanel() {
   </div>`;
 }
 
+// ── Mobile Experience ─────────────────────────────────────────
+
+const MOBILE_FLOWS = {
+  inspection: {
+    label: 'Pre-Start Inspection', icon: '📋',
+    intro: "I'll run a **Pre-Start Safety Inspection** for North Harbour Residential, Level 2.",
+    steps: [
+      { role:'agent', text:"Work through the checklist below — tap each item to confirm.", card:'checklist', cardItems:['PPE correct and in good condition','Work area barricaded / exclusion zone in place','SWMS sighted and understood by all crew','Plant & equipment pre-start completed','Emergency muster point and contacts known'], advanceLabel:'All good — submit ✓' },
+      { role:'agent', text:"Checklist complete ✓ Any hazards to note before starting work?", chips:['No hazards — proceed','Log a hazard first'] },
+      { role:'agent', text:"All clear.", card:'success', successTitle:'Inspection Complete', successSub:'Ref #INS-2847 · Submitted to Sarah Kim (Safety Manager)' },
+    ]
+  },
+  hazard: {
+    label: 'Report a Hazard', icon: '⚠️',
+    intro: "Let's log that hazard quickly. I'll notify your supervisor.",
+    steps: [
+      { role:'agent', text:"What type of hazard are you reporting?", chips:['Slip / Trip','Falling object','Electrical','Chemical','Struck by'] },
+      { role:'agent', text:"Got it. How severe is it right now?", chips:['Minor — monitor it','Moderate — near miss','Serious — stop work now'] },
+      { role:'agent', text:"Hazard logged and supervisor alerted.", card:'success', successTitle:'Hazard Reported', successSub:'Action #ACT-441 · Brett Harrison notified' },
+    ]
+  },
+  swms: {
+    label: 'SWMS Sign-On', icon: '✍️',
+    intro: "Found your SWMS for today: **Electrical Isolation — MV Switchboard, Building 4** (v3.1, Approved).",
+    steps: [
+      { role:'agent', text:"Please confirm all four declarations before signing on.", card:'declarations', cardItems:['I have read and understood this SWMS in full','I have the skills and competencies required for this task','I will follow all listed control measures','I will stop work and notify my supervisor if conditions change'], advanceLabel:'Declarations confirmed ✓' },
+      { role:'agent', text:"Declarations confirmed. Please sign below to complete your sign-on.", card:'signature', advanceLabel:'Submit signature →' },
+      { role:'agent', text:"You're signed on. Work may commence.", card:'success', successTitle:'Signed On', successSub:'Electrical Isolation · Building 4 · 4 of 8 crew signed' },
+    ]
+  },
+  checkin: {
+    label: 'Worker Check-In', icon: '🪪',
+    intro: "Scanning your Worker Passport for site check-in...",
+    steps: [
+      { role:'agent', text:"Hold your device near the NFC tag or scan the QR code.", card:'scanning', chips:['Scan complete →'] },
+      { role:'agent', text:"**James Chen** — all credentials verified ✓", card:'passport', chips:['Check in to site'] },
+      { role:'agent', text:"Checked in. Today's site briefing: **wet conditions** — extra slip controls on Level 2.", card:'success', successTitle:'Checked In', successSub:'North Harbour · Gate B · 08:43 AM' },
+    ]
+  },
+};
+
+function vMobile() {
+  if (!S.showMobile) return '';
+  const flow = S.mobileFlow ? MOBILE_FLOWS[S.mobileFlow] : null;
+  const msgs = S.mobileMsgs || [];
+  const checked = S.mobileChecked || [];
+  const declared = S.mobileDeclared || [];
+
+  function md(t) { return (t||'').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>'); }
+
+  function renderCard(msg) {
+    if (!msg.card) return '';
+    if (msg.card === 'checklist') {
+      const all = msg.cardItems.every((_,i) => checked.includes(i));
+      return `<div class="mob-card">
+        ${msg.cardItems.map((item,i) => `<div class="mob-check-row" data-mob-check="${i}">
+          <div class="mob-check-box ${checked.includes(i)?'checked':''}">✓</div>
+          <span style="font-size:12px;color:${checked.includes(i)?'#9ca3af':'#111827'};text-decoration:${checked.includes(i)?'line-through':'none'};line-height:1.4">${item}</span>
+        </div>`).join('')}
+        ${all ? `<button class="mob-advance-btn" data-mob-advance>${msg.advanceLabel||'Submit ✓'}</button>` : `<div style="font-size:11px;color:#9ca3af;text-align:center;margin-top:8px">Tap each item to confirm</div>`}
+      </div>`;
+    }
+    if (msg.card === 'declarations') {
+      const all = msg.cardItems.every((_,i) => declared.includes(i));
+      return `<div class="mob-card">
+        ${msg.cardItems.map((item,i) => `<div class="mob-check-row" data-mob-declare="${i}">
+          <div class="mob-check-box ${declared.includes(i)?'checked':''}">✓</div>
+          <span style="font-size:12px;color:${declared.includes(i)?'#9ca3af':'#111827'};line-height:1.4">${item}</span>
+        </div>`).join('')}
+        ${all ? `<button class="mob-advance-btn" data-mob-advance>${msg.advanceLabel||'Confirm ✓'}</button>` : `<div style="font-size:11px;color:#9ca3af;text-align:center;margin-top:8px">Tick all declarations to continue</div>`}
+      </div>`;
+    }
+    if (msg.card === 'signature') {
+      return `<div class="mob-card" style="text-align:center">
+        <div style="border:2px dashed #d1d5db;border-radius:12px;height:90px;display:flex;align-items:center;justify-content:center;margin-bottom:12px;background:#fafafa;cursor:pointer" data-mob-sign>
+          ${S.mobileSigned ? `<span style="font-size:26px;font-family:Georgia,serif;color:#1F2533;font-style:italic">James Chen</span>` : `<span style="color:#9ca3af;font-size:13px">Tap to sign</span>`}
+        </div>
+        ${S.mobileSigned ? `<button class="mob-advance-btn" data-mob-advance>${msg.advanceLabel||'Submit'}</button>` : `<button class="mob-advance-btn" style="background:#f3f4f6;color:#6b7280" data-mob-sign>Sign here</button>`}
+      </div>`;
+    }
+    if (msg.card === 'scanning') {
+      return `<div class="mob-card" style="text-align:center;padding:20px 12px">
+        <div style="width:72px;height:72px;border-radius:50%;background:rgba(101,89,255,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:32px">🪪</div>
+        <div style="font-size:13px;color:#6b7280;margin-bottom:10px">NFC / QR scanning...</div>
+        <div style="display:flex;justify-content:center;gap:5px">
+          <div style="width:7px;height:7px;border-radius:50%;background:#6559FF;animation:blink 1s 0s infinite"></div>
+          <div style="width:7px;height:7px;border-radius:50%;background:#6559FF;animation:blink 1s .3s infinite"></div>
+          <div style="width:7px;height:7px;border-radius:50%;background:#6559FF;animation:blink 1s .6s infinite"></div>
+        </div>
+      </div>`;
+    }
+    if (msg.card === 'passport') {
+      return `<div class="mob-card" style="padding:14px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <div style="width:46px;height:46px;border-radius:50%;background:#6559FF;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:15px">JC</div>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:14px;color:#111827">James Chen</div>
+            <div style="font-size:11px;color:#6b7280">Electrician · EL-44721</div>
+          </div>
+          <div style="background:#dcfce7;color:#16a34a;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700">✓ VERIFIED</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          ${[['White Card','Current ✓','#dcfce7','#16a34a'],['EWP Licence','Expires Dec 26 ⚠','#fef9c3','#ca8a04'],['First Aid','Current ✓','#dcfce7','#16a34a'],['Site Induction','Complete ✓','#dcfce7','#16a34a']].map(([k,v,bg,tc])=>`
+          <div style="background:${bg};border-radius:8px;padding:8px 9px">
+            <div style="font-size:10px;color:#6b7280;font-weight:600;margin-bottom:2px">${k}</div>
+            <div style="font-size:11px;font-weight:700;color:${tc}">${v}</div>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    }
+    if (msg.card === 'success') {
+      return `<div class="mob-card" style="text-align:center;padding:20px 14px">
+        <div style="width:56px;height:56px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:26px">✅</div>
+        <div style="font-weight:700;font-size:15px;color:#111827;margin-bottom:5px">${msg.successTitle||'Done!'}</div>
+        <div style="font-size:12px;color:#6b7280;line-height:1.5">${msg.successSub||''}</div>
+        <button class="mob-done-btn" data-mob-done style="margin-top:16px">Back to home</button>
+      </div>`;
+    }
+    return '';
+  }
+
+  function renderMsg(msg) {
+    const isAgent = msg.role === 'agent';
+    const used = msg.chipsUsed;
+    return `<div style="display:flex;flex-direction:${isAgent?'row':'row-reverse'};align-items:flex-end;gap:8px;margin-bottom:14px">
+      ${isAgent ? `<div style="width:30px;height:30px;border-radius:50%;background:#1F2533;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-bottom:2px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>` : ''}
+      <div style="max-width:78%">
+        <div style="background:${isAgent?'#f3f4f6':'#6559FF'};color:${isAgent?'#111827':'white'};border-radius:${isAgent?'6px 18px 18px 18px':'18px 6px 18px 18px'};padding:11px 14px;font-size:13px;line-height:1.55">${md(msg.text)}</div>
+        ${renderCard(msg)}
+        ${(msg.chips && !used) ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${msg.chips.map(c=>`<button class="mob-chip" data-mob-chip="${c}">${c}</button>`).join('')}</div>` : ''}
+      </div>
+    </div>`;
+  }
+
+  function typingDots() {
+    if (!S.mobileTyping) return '';
+    return `<div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:14px">
+      <div style="width:30px;height:30px;border-radius:50%;background:#1F2533;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <div style="background:#f3f4f6;border-radius:6px 18px 18px 18px;padding:14px 18px;display:flex;gap:5px;align-items:center">
+        <div style="width:7px;height:7px;border-radius:50%;background:#9ca3af;animation:blink 1s 0s infinite"></div>
+        <div style="width:7px;height:7px;border-radius:50%;background:#9ca3af;animation:blink 1s .25s infinite"></div>
+        <div style="width:7px;height:7px;border-radius:50%;background:#9ca3af;animation:blink 1s .5s infinite"></div>
+      </div>
+    </div>`;
+  }
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
+  function homeScreen() {
+    return `<div style="padding:18px 16px">
+      <div style="margin-bottom:22px">
+        <div style="font-size:20px;font-weight:800;color:#111827;letter-spacing:-0.3px">${greeting}, Blake 👋</div>
+        <div style="font-size:13px;color:#6b7280;margin-top:3px">North Harbour Residential · Gate B</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#1F2533 0%,#2a3347 100%);border-radius:20px;padding:18px;margin-bottom:22px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-20px;right:-20px;width:100px;height:100px;border-radius:50%;background:rgba(101,89,255,0.25)"></div>
+        <div style="position:absolute;bottom:-25px;right:30px;width:70px;height:70px;border-radius:50%;background:rgba(0,209,255,0.12)"></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;position:relative">
+          <div style="width:38px;height:38px;border-radius:50%;background:#6559FF;display:flex;align-items:center;justify-content:center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          </div>
+          <div>
+            <div style="color:white;font-weight:700;font-size:14px">SC Agent</div>
+            <div style="color:rgba(255,255,255,0.5);font-size:11px;display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e"></span>Online · Powered by SafetyCulture AI</div>
+          </div>
+        </div>
+        <div style="color:rgba(255,255,255,0.85);font-size:13px;line-height:1.6;position:relative">What do you need to do? I can run inspections, log hazards, process SWMS sign-ons, and verify workers — hands-free.</div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px">Quick actions</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">
+        ${[
+          {id:'inspection',icon:'📋',label:'Pre-Start Inspection',sub:'Daily safety check',col:'rgba(101,89,255,0.08)',bdr:'rgba(101,89,255,0.2)'},
+          {id:'hazard',icon:'⚠️',label:'Report Hazard',sub:'Log & alert supervisor',col:'rgba(220,38,38,0.06)',bdr:'rgba(220,38,38,0.2)'},
+          {id:'swms',icon:'✍️',label:'SWMS Sign-On',sub:'Electrical Isolation v3.1',col:'rgba(245,158,11,0.07)',bdr:'rgba(245,158,11,0.25)'},
+          {id:'checkin',icon:'🪪',label:'Worker Check-In',sub:'Scan NFC / QR passport',col:'rgba(14,165,233,0.07)',bdr:'rgba(14,165,233,0.2)'},
+        ].map(a=>`<button data-mob-action="${a.id}" style="background:${a.col};border:1.5px solid ${a.bdr};border-radius:16px;padding:14px 13px;text-align:left;cursor:pointer;transition:all .15s">
+          <div style="font-size:26px;margin-bottom:9px">${a.icon}</div>
+          <div style="font-size:12px;font-weight:700;color:#111827;line-height:1.3">${a.label}</div>
+          <div style="font-size:11px;color:#9ca3af;margin-top:3px">${a.sub}</div>
+        </button>`).join('')}
+      </div>
+      <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px">Recent activity</div>
+      ${[
+        {icon:'✅',label:'Pre-Start Inspection',sub:'Completed · Level 2 · 07:55 AM',bg:'#dcfce7'},
+        {icon:'📄',label:'SWMS Reviewed',sub:'Electrical Isolation v3.1 · Yesterday',bg:'#ede9fe'},
+        {icon:'⚠️',label:'Hazard Logged',sub:'Slip risk — stairwell · 2 days ago',bg:'#fef9c3'},
+      ].map(r=>`<div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #f3f4f6">
+        <div style="width:38px;height:38px;border-radius:11px;background:${r.bg};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${r.icon}</div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#111827">${r.label}</div>
+          <div style="font-size:11px;color:#9ca3af;margin-top:2px">${r.sub}</div>
+        </div>
+        <svg style="margin-left:auto;flex-shrink:0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  function chatScreen() {
+    return `<div style="padding:16px;min-height:100%" id="mob-chat">
+      ${msgs.map(m => renderMsg(m)).join('')}
+      ${typingDots()}
+    </div>`;
+  }
+
+  const fl = flow;
+  return `<div class="mobile-overlay" id="mobile-overlay">
+    <div class="mobile-frame">
+      <div style="background:#1F2533;padding:12px 22px 8px;display:flex;justify-content:space-between;align-items:center">
+        <span style="color:white;font-size:13px;font-weight:700">9:41</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <svg width="15" height="11" viewBox="0 0 15 11" fill="white" opacity=".8"><rect x="0" y="3" width="3" height="8" rx="1"/><rect x="4" y="2" width="3" height="9" rx="1"/><rect x="8" y="1" width="3" height="10" rx="1"/><rect x="12" y="0" width="3" height="11" rx="1" opacity=".4"/></svg>
+          <svg width="16" height="10" viewBox="0 0 20 12" fill="none" stroke="white" stroke-width="2" opacity=".8"><rect x="0" y="1" width="16" height="10" rx="2"/><rect x="2" y="3" width="10" height="6" rx="1" fill="white"/><rect x="17" y="4" width="3" height="4" rx="1" fill="white" opacity=".5"/></svg>
+        </div>
+      </div>
+      <div style="background:#1F2533;padding:10px 16px 16px;display:flex;align-items:center;gap:10px">
+        ${fl ? `<button data-mob-back style="background:rgba(255,255,255,0.1);border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:white;font-size:16px">‹</button>` : ''}
+        <div style="flex:1">
+          <div style="color:white;font-weight:700;font-size:15px">${fl ? fl.label : 'SafetyCulture'}</div>
+          <div style="color:rgba(255,255,255,0.45);font-size:11px;margin-top:1px">${fl ? 'SC Agent · North Harbour' : 'North Harbour Residential'}</div>
+        </div>
+        <button id="mobile-close" style="background:rgba(255,255,255,0.1);border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:white;font-size:18px;line-height:1">×</button>
+      </div>
+      <div class="mobile-body" id="mobile-body">
+        ${fl ? chatScreen() : homeScreen()}
+      </div>
+      ${fl && !S.mobileTyping ? `<div style="padding:10px 12px;border-top:1px solid #e5e7eb;background:white;display:flex;gap:8px;align-items:center">
+        <input id="mob-input" placeholder="Message SC Agent..." style="flex:1;border:1.5px solid #e5e7eb;border-radius:24px;padding:9px 16px;font-size:13px;outline:none;color:#111827;font-family:inherit"/>
+        <button id="mob-send" style="width:36px;height:36px;border-radius:50%;background:#6559FF;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        </button>
+      </div>` : ''}
+      <div style="display:flex;background:white;border-top:1px solid #e5e7eb;padding:8px 0 16px">
+        ${[{id:'home',icon:'⊞',label:'Home'},{id:'inspect',icon:'✓',label:'Inspect'},{id:'actions',icon:'⚡',label:'Actions'},{id:'learn',icon:'▣',label:'Learn'},{id:'me',icon:'◉',label:'Me'}].map(t=>`
+        <button data-mob-tab="${t.id}" style="flex:1;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0">
+          <span style="font-size:18px;line-height:1;color:${(S.mobileTab||'home')===t.id?'#6559FF':'#9ca3af'}">${t.icon}</span>
+          <span style="font-size:10px;font-weight:${(S.mobileTab||'home')===t.id?'700':'500'};color:${(S.mobileTab||'home')===t.id?'#6559FF':'#9ca3af'}">${t.label}</span>
+        </button>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
 // ── Render ───────────────────────────────────────────────────
 function render() {
   document.getElementById('app').innerHTML = `
@@ -4840,7 +5110,8 @@ function render() {
       </div>
     </div>
     ${demoControlsPanel()}
-    ${procureProModal()}`;
+    ${procureProModal()}
+    ${vMobile()}`;
 
   // Nav clicks (sidebar + generic [data-view] except back-button which has data-exit-project)
   document.querySelectorAll('[data-view]:not([data-exit-project])').forEach(el =>
@@ -5216,6 +5487,171 @@ function render() {
       }
     })
   );
+
+  // ── Mobile Experience handlers ───────────────────────────────
+
+  function mobScrollBottom() {
+    setTimeout(() => {
+      const b = document.getElementById('mobile-body');
+      if (b) b.scrollTop = b.scrollHeight;
+    }, 30);
+  }
+
+  function mobAgentReply(msg, extraState) {
+    S = { ...S, mobileTyping: true, ...(extraState||{}) };
+    render(); mobScrollBottom();
+    setTimeout(() => {
+      S = { ...S, mobileTyping: false, mobileMsgs: [...S.mobileMsgs, { role:'agent', ...msg }], mobileStep: S.mobileStep + 1 };
+      render(); mobScrollBottom();
+    }, 900);
+  }
+
+  function mobAdvanceFlow(userText) {
+    const flow = MOBILE_FLOWS[S.mobileFlow];
+    if (!flow) return;
+    const nextStep = flow.steps[S.mobileStep];
+    if (!nextStep) return;
+    // Mark current agent chips as used
+    const updatedMsgs = S.mobileMsgs.map((m,i) => i === S.mobileMsgs.length-1 ? {...m, chipsUsed:true} : m);
+    const userMsg = userText ? { role:'user', text: userText } : null;
+    S = { ...S, mobileMsgs: userMsg ? [...updatedMsgs, userMsg] : updatedMsgs };
+    mobAgentReply(nextStep);
+  }
+
+  // Open mobile overlay
+  document.getElementById('mobile-open-btn')?.addEventListener('click', e => {
+    e.stopPropagation();
+    S = { ...S, showMobile: true, mobileTab: 'home', mobileFlow: null, mobileStep: 0, mobileMsgs: [], mobileTyping: false, mobileChecked: [], mobileDeclared: [], mobileSigned: false };
+    render();
+  });
+
+  // Close mobile overlay
+  document.getElementById('mobile-close')?.addEventListener('click', e => {
+    e.stopPropagation();
+    S = { ...S, showMobile: false };
+    render();
+  });
+  document.getElementById('mobile-overlay')?.addEventListener('click', e => {
+    if (e.target === document.getElementById('mobile-overlay')) {
+      S = { ...S, showMobile: false };
+      render();
+    }
+  });
+
+  // Start a flow from home screen
+  document.querySelectorAll('[data-mob-action]').forEach(el =>
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      const flowId = el.dataset.mobAction;
+      const flow = MOBILE_FLOWS[flowId];
+      if (!flow) return;
+      const introMsg = { role:'agent', text: flow.intro };
+      const firstStep = flow.steps[0];
+      S = { ...S, mobileFlow: flowId, mobileStep: 0, mobileMsgs: [], mobileTyping: true, mobileChecked: [], mobileDeclared: [], mobileSigned: false };
+      render(); mobScrollBottom();
+      setTimeout(() => {
+        S = { ...S, mobileTyping: false, mobileMsgs: [introMsg] };
+        render(); mobScrollBottom();
+        setTimeout(() => {
+          S = { ...S, mobileTyping: true };
+          render(); mobScrollBottom();
+          setTimeout(() => {
+            S = { ...S, mobileTyping: false, mobileMsgs: [...S.mobileMsgs, { role:'agent', ...firstStep }], mobileStep: 1 };
+            render(); mobScrollBottom();
+          }, 900);
+        }, 400);
+      }, 800);
+    })
+  );
+
+  // Back to home
+  document.querySelectorAll('[data-mob-back]').forEach(el =>
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      S = { ...S, mobileFlow: null, mobileStep: 0, mobileMsgs: [], mobileTyping: false, mobileChecked: [], mobileDeclared: [], mobileSigned: false };
+      render();
+    })
+  );
+
+  // Chip tapped — send as user message, advance flow
+  document.querySelectorAll('[data-mob-chip]').forEach(el =>
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      mobAdvanceFlow(el.dataset.mobChip);
+    })
+  );
+
+  // Checklist item toggle
+  document.querySelectorAll('[data-mob-check]').forEach(el =>
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      const idx = parseInt(el.dataset.mobCheck);
+      const ch = S.mobileChecked || [];
+      S = { ...S, mobileChecked: ch.includes(idx) ? ch.filter(i=>i!==idx) : [...ch, idx] };
+      render();
+    })
+  );
+
+  // Declaration toggle
+  document.querySelectorAll('[data-mob-declare]').forEach(el =>
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      const idx = parseInt(el.dataset.mobDeclare);
+      const dc = S.mobileDeclared || [];
+      S = { ...S, mobileDeclared: dc.includes(idx) ? dc.filter(i=>i!==idx) : [...dc, idx] };
+      render();
+    })
+  );
+
+  // Sign
+  document.querySelectorAll('[data-mob-sign]').forEach(el =>
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      S = { ...S, mobileSigned: true };
+      render(); mobScrollBottom();
+    })
+  );
+
+  // Advance card (checklist all done, declarations all done, signature submitted)
+  document.querySelectorAll('[data-mob-advance]').forEach(el =>
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      mobAdvanceFlow(null);
+    })
+  );
+
+  // Done — back to home
+  document.querySelectorAll('[data-mob-done]').forEach(el =>
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      S = { ...S, mobileFlow: null, mobileStep: 0, mobileMsgs: [], mobileTyping: false, mobileChecked: [], mobileDeclared: [], mobileSigned: false };
+      render();
+    })
+  );
+
+  // Bottom nav tabs
+  document.querySelectorAll('[data-mob-tab]').forEach(el =>
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      S = { ...S, mobileTab: el.dataset.mobTab };
+      render();
+    })
+  );
+
+  // Send typed message
+  document.getElementById('mob-send')?.addEventListener('click', e => {
+    e.stopPropagation();
+    const input = document.getElementById('mob-input');
+    const txt = input?.value?.trim();
+    if (txt) { input.value = ''; mobAdvanceFlow(txt); }
+  });
+  document.getElementById('mob-input')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const txt = e.target.value.trim();
+      if (txt) { e.target.value = ''; mobAdvanceFlow(txt); }
+    }
+  });
 
   // ── SWMS & HRCW event handlers ───────────────────────────────
 
