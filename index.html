@@ -498,6 +498,29 @@
     .mob-drawer-overlay.open { opacity:1;pointer-events:all; }
     .mob-drawer { position:absolute;top:0;left:0;bottom:0;width:290px;background:white;z-index:60;display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);border-radius:50px 0 0 50px; }
     .mob-drawer.open { transform:translateX(0); }
+
+    /* Drawing upload modal */
+    .dwg-upload-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px); }
+    .dwg-upload-panel { background:white;border-radius:20px;padding:28px;width:100%;max-width:520px;box-shadow:0 30px 60px rgba(0,0,0,0.3); }
+    .dwg-drop-zone { border:2px dashed #d1d5db;border-radius:14px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .15s;background:#fafafa; }
+    .dwg-drop-zone:hover { border-color:#6559FF;background:#f5f3ff; }
+    .dwg-process-step { display:flex;align-items:center;gap:12px;padding:10px 0;font-size:13px;color:#374151; }
+    .dwg-process-step.done { color:#16a34a; }
+    .dwg-process-step.active { color:#6559FF;font-weight:600; }
+    .dwg-process-step.pending { color:#d1d5db; }
+    .dwg-field-grid { display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin:14px 0; }
+    .dwg-field { display:flex;flex-direction:column;gap:3px; }
+    .dwg-field-label { font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em; }
+    .dwg-field-value { font-size:13px;font-weight:600;color:#111827; }
+
+    /* Mobile drawing viewer */
+    .mob-dwg-viewer { position:relative;flex:1;overflow:hidden;background:#1a1a2e;display:flex;flex-direction:column; }
+    .mob-dwg-svg-wrap { flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:grab; }
+    .mob-dwg-controls { position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:6px;z-index:10; }
+    .mob-dwg-ctrl-btn { width:34px;height:34px;background:rgba(0,0,0,0.6);border-radius:8px;color:white;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(8px);border:none; }
+    .mob-dwg-info-btn { position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.65);border:1px solid rgba(255,255,255,.2);border-radius:20px;color:white;font-size:12px;font-weight:600;padding:8px 18px;cursor:pointer;backdrop-filter:blur(8px);z-index:10;display:flex;align-items:center;gap:6px; }
+    .mob-dwg-info-panel { position:absolute;bottom:0;left:0;right:0;background:white;border-radius:20px 20px 0 0;padding:18px;z-index:20;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:70%;overflow-y:auto; }
+    .mob-dwg-info-panel.open { transform:translateY(0); }
   </style>
 </head>
 <body>
@@ -759,7 +782,7 @@ const WORKERS = [
 ];
 
 // ── State ────────────────────────────────────────────────────
-let S = { mode: 'sc', view: 'home', activeDrawing: 0, project: null, inProject: false, showProjectDrop: false, projectTab: 'overview', dwgTab: 'details', dwgView: 'register', activeMarkup: null, activeTool: 'select', progStep: null, progSource: null, progTopTab: 'schedule', progSubTab: 'master', ganttView: 'week', ganttFilter: 'all', ganttCollapsed: {}, ganttExpanded: null, jobsView: 'grid', jobsExpanded: {}, showDemoPanel: false, showProcureProModal: false, phase: 1, featureFlags: { procureproSchedule: false, workerPassport: false }, passportView: 'dashboard', passportWorker: null, passportVerifyStep: 0, passportVerifyWorker: null, passportInductionStep: 0, swmsView: 'register', swmsDoc: null, swmsTab: 'document', swmsKioskCount: 0, showMobile: false, mobileDrawerOpen: false, mobileFlow: null, mobileStep: 0, mobileMsgs: [], mobileTyping: false, mobileChecked: [], mobileDeclared: [], mobileSigned: false };
+let S = { mode: 'sc', view: 'home', activeDrawing: 0, project: null, inProject: false, showProjectDrop: false, projectTab: 'overview', dwgTab: 'details', dwgView: 'register', activeMarkup: null, activeTool: 'select', progStep: null, progSource: null, progTopTab: 'schedule', progSubTab: 'master', ganttView: 'week', ganttFilter: 'all', ganttCollapsed: {}, ganttExpanded: null, jobsView: 'grid', jobsExpanded: {}, showDemoPanel: false, showProcureProModal: false, phase: 1, featureFlags: { procureproSchedule: false, workerPassport: false }, passportView: 'dashboard', passportWorker: null, passportVerifyStep: 0, passportVerifyWorker: null, passportInductionStep: 0, swmsView: 'register', swmsDoc: null, swmsTab: 'document', swmsKioskCount: 0, showMobile: false, mobileDrawerOpen: false, mobileFlow: null, mobileStep: 0, mobileMsgs: [], mobileTyping: false, mobileChecked: [], mobileDeclared: [], mobileSigned: false, dwgUploadOpen: false, dwgUploadStep: 0, dwgProcessingIdx: 0, dwgLatestRev: null, mobileScreen: 'agent', mobileDwgFolder: null, mobileDwgDoc: null, mobileDwgZoom: 1, mobileDwgShowInfo: false };
 
 // Set phase (does not affect feature flags)
 function setPhase(n) {
@@ -2233,7 +2256,7 @@ function vConDrawings() {
   const proj = PROJECTS.find(p => p.id === S.project) || PROJECTS[0];
   const disciplines = [
     { name: 'ARCHITECTURAL', sheets: [
-      { num:'A-301', name:'Level 3 – Floor Plan',          rev:'Rev C', status:'Current',    uploaded:'8 May 2026',  markups:2 },
+      { num:'A-301', name:'Level 3 – Floor Plan',          rev: S.dwgLatestRev ? 'Rev '+S.dwgLatestRev : 'Rev C', status:'Current',    uploaded: S.dwgLatestRev ? '3 Jun 2026' : '8 May 2026',  markups:2 },
       { num:'A-302', name:'Level 3 – Reflected Ceiling',   rev:'Rev B', status:'Current',    uploaded:'5 May 2026',  markups:0 },
       { num:'A-303', name:'Level 3 – Fitout Details',      rev:'Rev A', status:'For Review', uploaded:'10 May 2026', markups:1 },
     ]},
@@ -2274,7 +2297,7 @@ function vConDrawings() {
           ${totalMarkups > 0 ? `<span style="font-size:12px;font-weight:600;color:#d97706;background:rgba(217,119,6,.1);padding:3px 10px;border-radius:10px">${totalMarkups} open markups</span>` : ''}
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-o btn-sm">⇑ Upload Drawings</button>
+          <button id="dwg-upload-btn" class="btn btn-o btn-sm">⇑ Upload Drawings</button>
           <button class="btn btn-o btn-sm">▼ Filter</button>
           <button class="btn btn-c btn-sm" data-dwg-view="viewer">Open Drawing Viewer →</button>
         </div>
@@ -4896,6 +4919,82 @@ const MOBILE_FLOWS = {
   },
 };
 
+// ── Drawing Upload Modal ──────────────────────────────────────
+function dwgUploadModal() {
+  if (!S.dwgUploadOpen) return '';
+  const processingSteps = [
+    '📄 Parsing PDF layers & metadata...',
+    '🔍 Locating title block (bottom-right quadrant)...',
+    '📝 Extracting text, callouts & revision table...',
+    '🔄 Matching drawing number to register...',
+    '📁 Auto-sorting into discipline folder...',
+  ];
+  let body = '';
+  if (S.dwgUploadStep === 0) {
+    body = `
+      <h2 style="font-size:17px;font-weight:700;color:#111827;margin-bottom:6px">Upload Drawings</h2>
+      <p style="font-size:13px;color:#6b7280;margin-bottom:18px">AI will extract title block data and auto-sort into the register.</p>
+      <div class="dwg-drop-zone" id="dwg-drop-zone" onclick="document.getElementById('dwg-file-input').click()">
+        <div style="font-size:40px;margin-bottom:10px">📄</div>
+        <div style="font-size:14px;font-weight:600;color:#374151;margin-bottom:4px">Drag drawings here or click to upload</div>
+        <div style="font-size:12px;color:#9ca3af">Supports PDF, PNG, JPG</div>
+      </div>
+      <input type="file" id="dwg-file-input" accept=".pdf,.png,.jpg" style="display:none">
+      <div style="display:flex;justify-content:flex-end;margin-top:18px">
+        <button id="dwg-close-upload" class="btn btn-o btn-sm">Cancel</button>
+      </div>`;
+  } else if (S.dwgUploadStep === 1) {
+    body = `
+      <h2 style="font-size:17px;font-weight:700;color:#111827;margin-bottom:6px">AI Processing</h2>
+      <p style="font-size:13px;color:#6b7280;margin-bottom:18px">Analysing drawing — this only takes a moment.</p>
+      <div style="padding:4px 0">
+        ${processingSteps.map((step, i) => {
+          const state = i < S.dwgProcessingIdx ? 'done' : i === S.dwgProcessingIdx ? 'active' : 'pending';
+          const icon = state === 'done' ? '✓' : state === 'active' ? '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#6559FF;animation:blink 0.9s infinite"></span>' : '○';
+          return `<div class="dwg-process-step ${state}">
+            <span style="width:20px;text-align:center;font-size:14px;flex-shrink:0">${icon}</span>
+            <span>${step}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+  } else if (S.dwgUploadStep === 2) {
+    body = `
+      <h2 style="font-size:17px;font-weight:700;color:#111827;margin-bottom:4px">AI Extracted — Title Block</h2>
+      <p style="font-size:12px;color:#6b7280;margin-bottom:2px">Review the extracted data before uploading.</p>
+      <div class="dwg-field-grid">
+        <div class="dwg-field"><div class="dwg-field-label">Drawing No.</div><div class="dwg-field-value">A-301</div></div>
+        <div class="dwg-field"><div class="dwg-field-label">Title</div><div class="dwg-field-value">Level 3 – Floor Plan</div></div>
+        <div class="dwg-field"><div class="dwg-field-label">Revision</div><div class="dwg-field-value"><span style="background:rgba(101,89,255,.12);color:#6559FF;padding:2px 10px;border-radius:8px;font-size:13px;font-weight:700">Rev D</span></div></div>
+        <div class="dwg-field"><div class="dwg-field-label">Date</div><div class="dwg-field-value">3 Jun 2026</div></div>
+        <div class="dwg-field"><div class="dwg-field-label">Scale</div><div class="dwg-field-value">1:100</div></div>
+        <div class="dwg-field"><div class="dwg-field-label">Discipline</div><div class="dwg-field-value">ARCHITECTURAL</div></div>
+        <div class="dwg-field"><div class="dwg-field-label">Project</div><div class="dwg-field-value">North Harbour Residential</div></div>
+        <div class="dwg-field"><div class="dwg-field-label">Drawn by</div><div class="dwg-field-value">M. Nguyen</div></div>
+        <div class="dwg-field"><div class="dwg-field-label">Approved</div><div class="dwg-field-value">B. Harrison</div></div>
+        <div class="dwg-field"><div class="dwg-field-label">Status</div><div class="dwg-field-value">Issued for Construction</div></div>
+      </div>
+      <div style="background:#fffbeb;border:1.5px solid #f59e0b;border-radius:12px;padding:13px 15px;margin:12px 0;font-size:13px;color:#92400e;line-height:1.5">
+        ⚠️ <strong>Revision detected</strong> — Drawing A-301 already exists in the register at <strong>Rev C</strong> (uploaded 8 May 2026). This upload will version over Rev C — it will be retained as a superseded revision.
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+        <button id="dwg-close-upload" class="btn btn-o btn-sm">Cancel</button>
+        <button id="dwg-confirm-upload" class="btn btn-sm" style="background:#16a34a;color:white;border:none;border-radius:8px;padding:8px 18px;font-weight:600;cursor:pointer">Version &amp; Upload ✓</button>
+      </div>`;
+  } else if (S.dwgUploadStep === 3) {
+    body = `
+      <div style="text-align:center;padding:20px 10px">
+        <div style="width:64px;height:64px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:30px">✅</div>
+        <h2 style="font-size:18px;font-weight:700;color:#111827;margin-bottom:6px">Drawing uploaded and versioned</h2>
+        <p style="font-size:13px;color:#6b7280;margin-bottom:6px">A-301 Rev D is now the current revision. Rev C retained as superseded.</p>
+        <p style="font-size:13px;color:#6b7280;margin-bottom:22px">Added to: <strong>Architectural</strong> folder</p>
+        <button id="dwg-close-upload" class="btn btn-c btn-sm">Close</button>
+      </div>`;
+  }
+  return `<div class="dwg-upload-overlay" id="dwg-upload-overlay">
+    <div class="dwg-upload-panel">${body}</div>
+  </div>`;
+}
+
 function vMobile() {
   if (!S.showMobile) return '';
   const flow = S.mobileFlow ? MOBILE_FLOWS[S.mobileFlow] : null;
@@ -5111,7 +5210,323 @@ function vMobile() {
     </div>`;
   }
 
+  // ── Mobile Drawing Screen ────────────────────────────────────
+  function mobileDwgScreen() {
+    const DWG_FOLDERS = [
+      { id:'architectural', icon:'📐', label:'Architectural', sheets:[
+        { num:'A-301', name:'Level 3 – Floor Plan',        rev:'Rev D', prevRev:'Rev C', status:'Current',    uploaded:'3 Jun 2026' },
+        { num:'A-302', name:'Level 3 – Reflected Ceiling', rev:'Rev B', prevRev:null,    status:'Current',    uploaded:'5 May 2026' },
+        { num:'A-303', name:'Level 3 – Fitout Details',    rev:'Rev A', prevRev:null,    status:'For Review', uploaded:'10 May 2026' },
+      ], count:'A-301 to A-303', date:'3 Jun 2026' },
+      { id:'structural', icon:'🏗', label:'Structural', sheets:[
+        { num:'S-001', name:'Footing Layout Plan',       rev:'Rev C', prevRev:null, status:'Current',    uploaded:'8 May 2026' },
+        { num:'S-002', name:'Ground Floor Slab',         rev:'Rev C', prevRev:null, status:'Current',    uploaded:'8 May 2026' },
+        { num:'S-003', name:'Column & Beam Schedule',    rev:'Rev B', prevRev:null, status:'Current',    uploaded:'1 May 2026' },
+        { num:'S-004', name:'Tilt Panel Details',        rev:'Rev A', prevRev:null, status:'For Review', uploaded:'10 May 2026' },
+      ], count:'S-001 to S-004', date:'8 May 2026' },
+      { id:'civil', icon:'🌏', label:'Civil', sheets:[
+        { num:'C-001', name:'Site Layout & Setout',       rev:'Rev B', prevRev:null, status:'Current',    uploaded:'12 May 2026' },
+        { num:'C-002', name:'Earthworks & Drainage Plan', rev:'Rev B', prevRev:null, status:'Current',    uploaded:'12 May 2026' },
+        { num:'C-003', name:'Road Pavement Details',      rev:'Rev A', prevRev:null, status:'Superseded', uploaded:'2 Apr 2026' },
+      ], count:'C-001 to C-003', date:'12 May 2026' },
+      { id:'services', icon:'⚡', label:'Services', sheets:[
+        { num:'M-001', name:'Hydraulic Services Plan', rev:'Rev A', prevRev:null, status:'Current', uploaded:'28 Apr 2026' },
+        { num:'E-001', name:'Electrical Layout',       rev:'Rev A', prevRev:null, status:'Current', uploaded:'28 Apr 2026' },
+      ], count:'M-001, E-001', date:'28 Apr 2026' },
+    ];
+
+    // Override A-301 rev if uploaded
+    if (S.dwgLatestRev) {
+      DWG_FOLDERS[0].sheets[0].rev = 'Rev ' + S.dwgLatestRev;
+      DWG_FOLDERS[0].sheets[0].uploaded = '3 Jun 2026';
+    }
+
+    const stCol = { Current:'#16a34a', 'For Review':'#d97706', Superseded:'#9ca3af' };
+
+    // Level 1 — folder grid
+    if (!S.mobileDwgFolder) {
+      return `<div style="padding:14px">
+        <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:12px">North Harbour Residential</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          ${DWG_FOLDERS.map(f=>`<div data-mob-dwg-folder="${f.id}" style="background:white;border:1.5px solid #e5e7eb;border-radius:14px;padding:14px 12px;cursor:pointer;transition:box-shadow .12s" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,.09)'" onmouseout="this.style.boxShadow='none'">
+            <div style="font-size:28px;margin-bottom:8px">${f.icon}</div>
+            <div style="font-size:13px;font-weight:700;color:#111827;margin-bottom:3px">${f.label}</div>
+            <div style="font-size:11px;color:#6b7280;margin-bottom:2px">${f.count}</div>
+            <div style="font-size:10px;color:#9ca3af">${f.date}</div>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    }
+
+    const folder = DWG_FOLDERS.find(f=>f.id===S.mobileDwgFolder);
+    if (!folder) return '';
+
+    // Level 3 — SVG viewer
+    if (S.mobileDwgDoc) {
+      const doc = folder.sheets.find(s=>s.num===S.mobileDwgDoc) || folder.sheets[0];
+      const zoom = S.mobileDwgZoom || 1;
+      const showInfo = S.mobileDwgShowInfo || false;
+
+      // A-301 full floor plan SVG
+      const svgA301 = `<svg viewBox="0 0 1000 750" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;transform:scale(${zoom});transform-origin:center center;transition:transform .2s">
+        <rect width="1000" height="750" fill="#f9f8f4"/>
+        <!-- Grid lines -->
+        <defs>
+          <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#666"/>
+          </marker>
+          <marker id="arrl" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto-start-reverse">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#666"/>
+          </marker>
+        </defs>
+        <!-- Grid cols A-E at x:120,280,460,640,880 -->
+        <!-- Grid rows 1-4 at y:80,220,380,560 -->
+        <line x1="120" y1="80" x2="120" y2="560" stroke="#ccc" stroke-width="0.5" stroke-dasharray="4,4"/>
+        <line x1="280" y1="80" x2="280" y2="560" stroke="#ccc" stroke-width="0.5" stroke-dasharray="4,4"/>
+        <line x1="460" y1="80" x2="460" y2="560" stroke="#ccc" stroke-width="0.5" stroke-dasharray="4,4"/>
+        <line x1="640" y1="80" x2="640" y2="560" stroke="#ccc" stroke-width="0.5" stroke-dasharray="4,4"/>
+        <line x1="880" y1="80" x2="880" y2="560" stroke="#ccc" stroke-width="0.5" stroke-dasharray="4,4"/>
+        <line x1="120" y1="80"  x2="880" y2="80"  stroke="#ccc" stroke-width="0.5" stroke-dasharray="4,4"/>
+        <line x1="120" y1="220" x2="880" y2="220" stroke="#ccc" stroke-width="0.5" stroke-dasharray="4,4"/>
+        <line x1="120" y1="380" x2="880" y2="380" stroke="#ccc" stroke-width="0.5" stroke-dasharray="4,4"/>
+        <line x1="120" y1="560" x2="880" y2="560" stroke="#ccc" stroke-width="0.5" stroke-dasharray="4,4"/>
+        <!-- Grid bubbles top -->
+        <circle cx="120" cy="54" r="12" fill="none" stroke="#555" stroke-width="1"/><text x="120" y="58" text-anchor="middle" font-size="10" fill="#555" font-family="Courier New, monospace">A</text>
+        <circle cx="280" cy="54" r="12" fill="none" stroke="#555" stroke-width="1"/><text x="280" y="58" text-anchor="middle" font-size="10" fill="#555" font-family="Courier New, monospace">B</text>
+        <circle cx="460" cy="54" r="12" fill="none" stroke="#555" stroke-width="1"/><text x="460" y="58" text-anchor="middle" font-size="10" fill="#555" font-family="Courier New, monospace">C</text>
+        <circle cx="640" cy="54" r="12" fill="none" stroke="#555" stroke-width="1"/><text x="640" y="58" text-anchor="middle" font-size="10" fill="#555" font-family="Courier New, monospace">D</text>
+        <circle cx="880" cy="54" r="12" fill="none" stroke="#555" stroke-width="1"/><text x="880" y="58" text-anchor="middle" font-size="10" fill="#555" font-family="Courier New, monospace">E</text>
+        <!-- Grid bubbles left -->
+        <circle cx="90" cy="80"  r="12" fill="none" stroke="#555" stroke-width="1"/><text x="90" y="84"  text-anchor="middle" font-size="10" fill="#555" font-family="Courier New, monospace">1</text>
+        <circle cx="90" cy="220" r="12" fill="none" stroke="#555" stroke-width="1"/><text x="90" y="224" text-anchor="middle" font-size="10" fill="#555" font-family="Courier New, monospace">2</text>
+        <circle cx="90" cy="380" r="12" fill="none" stroke="#555" stroke-width="1"/><text x="90" y="384" text-anchor="middle" font-size="10" fill="#555" font-family="Courier New, monospace">3</text>
+        <circle cx="90" cy="560" r="12" fill="none" stroke="#555" stroke-width="1"/><text x="90" y="564" text-anchor="middle" font-size="10" fill="#555" font-family="Courier New, monospace">4</text>
+        <!-- Outer perimeter -->
+        <rect x="120" y="80" width="760" height="480" fill="none" stroke="#1a1a1a" stroke-width="8"/>
+        <!-- Internal walls -->
+        <line x1="280" y1="80"  x2="280" y2="380" stroke="#1a1a1a" stroke-width="4"/>
+        <line x1="460" y1="80"  x2="460" y2="380" stroke="#1a1a1a" stroke-width="4"/>
+        <line x1="640" y1="80"  x2="640" y2="380" stroke="#1a1a1a" stroke-width="4"/>
+        <line x1="120" y1="220" x2="880" y2="220" stroke="#1a1a1a" stroke-width="4"/>
+        <line x1="120" y1="380" x2="880" y2="380" stroke="#1a1a1a" stroke-width="4"/>
+        <!-- WC partition -->
+        <line x1="320" y1="380" x2="320" y2="560" stroke="#1a1a1a" stroke-width="4"/>
+        <!-- Windows (triple lines on N/S walls) -->
+        <line x1="160" y1="80" x2="240" y2="80" stroke="#6b9fc1" stroke-width="3"/>
+        <line x1="160" y1="76" x2="240" y2="76" stroke="#6b9fc1" stroke-width="1.5"/>
+        <line x1="160" y1="84" x2="240" y2="84" stroke="#6b9fc1" stroke-width="1.5"/>
+        <line x1="680" y1="80" x2="840" y2="80" stroke="#6b9fc1" stroke-width="3"/>
+        <line x1="680" y1="76" x2="840" y2="76" stroke="#6b9fc1" stroke-width="1.5"/>
+        <line x1="680" y1="84" x2="840" y2="84" stroke="#6b9fc1" stroke-width="1.5"/>
+        <line x1="160" y1="560" x2="240" y2="560" stroke="#6b9fc1" stroke-width="3"/>
+        <line x1="160" y1="556" x2="240" y2="556" stroke="#6b9fc1" stroke-width="1.5"/>
+        <line x1="160" y1="564" x2="240" y2="564" stroke="#6b9fc1" stroke-width="1.5"/>
+        <!-- Doors -->
+        <path d="M280,150 A40,40 0 0,0 320,150" fill="none" stroke="#1a1a1a" stroke-width="1.5"/>
+        <line x1="280" y1="150" x2="280" y2="190" stroke="#1a1a1a" stroke-width="1.5"/>
+        <path d="M460,290 A40,40 0 0,0 500,290" fill="none" stroke="#1a1a1a" stroke-width="1.5"/>
+        <line x1="460" y1="290" x2="460" y2="330" stroke="#1a1a1a" stroke-width="1.5"/>
+        <path d="M320,430 A40,40 0 0,0 320,470" fill="none" stroke="#1a1a1a" stroke-width="1.5"/>
+        <line x1="320" y1="430" x2="360" y2="430" stroke="#1a1a1a" stroke-width="1.5"/>
+        <!-- Room labels -->
+        <text x="200" y="148" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="#374151" font-weight="600" letter-spacing="0.5">OFFICE</text>
+        <text x="200" y="160" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="#374151" font-weight="600" letter-spacing="0.5">4.01</text>
+        <text x="370" y="148" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="#374151" font-weight="600" letter-spacing="0.5">OFFICE</text>
+        <text x="370" y="160" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="#374151" font-weight="600" letter-spacing="0.5">4.02</text>
+        <text x="550" y="148" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="#374151" font-weight="600" letter-spacing="0.5">MEETING</text>
+        <text x="550" y="160" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="#374151" font-weight="600" letter-spacing="0.5">ROOM</text>
+        <text x="760" y="143" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="#374151" font-weight="600" letter-spacing="0.5">OPEN PLAN</text>
+        <text x="760" y="155" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="#374151" font-weight="600" letter-spacing="0.5">OFFICE</text>
+        <text x="500" y="305" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="#374151" font-weight="600" letter-spacing="0.5">CORRIDOR</text>
+        <text x="210" y="473" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="#374151" font-weight="600" letter-spacing="0.5">WC MALE</text>
+        <text x="390" y="473" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="#374151" font-weight="600" letter-spacing="0.5">WC</text>
+        <text x="390" y="485" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="#374151" font-weight="600" letter-spacing="0.5">FEMALE</text>
+        <text x="550" y="473" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="#374151" font-weight="600" letter-spacing="0.5">STORE</text>
+        <text x="760" y="468" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="#374151" font-weight="600" letter-spacing="0.5">OFFICE</text>
+        <text x="760" y="480" text-anchor="middle" font-size="9" font-family="Inter,sans-serif" fill="#374151" font-weight="600" letter-spacing="0.5">4.03</text>
+        <!-- Dimension lines -->
+        <line x1="120" y1="32" x2="880" y2="32" stroke="#666" stroke-width="0.7" marker-start="url(#arrl)" marker-end="url(#arr)"/>
+        <text x="500" y="28" text-anchor="middle" font-size="8" fill="#666" font-family="Courier New, monospace">18,420</text>
+        <line x1="950" y1="80" x2="950" y2="560" stroke="#666" stroke-width="0.7" marker-start="url(#arrl)" marker-end="url(#arr)"/>
+        <text x="972" y="325" text-anchor="middle" font-size="8" fill="#666" font-family="Courier New, monospace" transform="rotate(90,972,325)">14,700</text>
+        <!-- Room width dims -->
+        <text x="200" y="575" text-anchor="middle" font-size="7" fill="#888" font-family="Courier New, monospace">4,200</text>
+        <text x="370" y="575" text-anchor="middle" font-size="7" fill="#888" font-family="Courier New, monospace">4,800</text>
+        <text x="550" y="575" text-anchor="middle" font-size="7" fill="#888" font-family="Courier New, monospace">4,800</text>
+        <text x="760" y="575" text-anchor="middle" font-size="7" fill="#888" font-family="Courier New, monospace">6,420</text>
+        <!-- North arrow -->
+        <g transform="translate(930,110)">
+          <circle cx="0" cy="0" r="18" fill="none" stroke="#333" stroke-width="1.5"/>
+          <polygon points="0,-14 5,5 0,1 -5,5" fill="#1a1a1a"/>
+          <polygon points="0,14 5,-5 0,-1 -5,-5" fill="#aaa"/>
+          <text x="0" y="-20" text-anchor="middle" font-size="9" font-weight="700" fill="#1a1a1a" font-family="Inter,sans-serif">N</text>
+        </g>
+        <!-- Callout markups -->
+        <!-- Cloud markup (amber) WC area -->
+        <rect x="125" y="385" width="190" height="170" rx="8" fill="rgba(245,158,11,0.08)" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <rect x="128" y="390" width="116" height="18" rx="4" fill="#f59e0b"/>
+        <text x="134" y="402" font-size="8" fill="white" font-weight="700" font-family="Inter,sans-serif">WP DEFECT ⚠</text>
+        <!-- Callout bubble blue Room 4.01 -->
+        <rect x="130" y="95" width="120" height="18" rx="4" fill="#2563eb"/>
+        <text x="136" y="107" font-size="8" fill="white" font-weight="700" font-family="Inter,sans-serif">RENDER CRACK ①</text>
+        <line x1="190" y1="113" x2="190" y2="130" stroke="#2563eb" stroke-width="1.5"/>
+        <!-- Inspection pin teal WC -->
+        <circle cx="290" cy="450" r="10" fill="#0d9488"/>
+        <text x="290" y="454" text-anchor="middle" font-size="8" fill="white" font-weight="700" font-family="Inter,sans-serif">✓</text>
+        <text x="306" y="450" font-size="7" fill="#0d9488" font-weight="600" font-family="Inter,sans-serif">INSPECTION</text>
+        <!-- Title block -->
+        <rect x="600" y="580" width="400" height="170" fill="white" stroke="#1a1a1a" stroke-width="1.5"/>
+        <line x1="600" y1="612" x2="1000" y2="612" stroke="#1a1a1a" stroke-width="1"/>
+        <line x1="600" y1="636" x2="1000" y2="636" stroke="#1a1a1a" stroke-width="1"/>
+        <line x1="600" y1="660" x2="1000" y2="660" stroke="#1a1a1a" stroke-width="1"/>
+        <line x1="600" y1="700" x2="1000" y2="700" stroke="#1a1a1a" stroke-width="0.5"/>
+        <line x1="734" y1="660" x2="734" y2="750" stroke="#1a1a1a" stroke-width="0.5"/>
+        <line x1="800" y1="660" x2="800" y2="750" stroke="#1a1a1a" stroke-width="0.5"/>
+        <text x="610" y="598" font-size="10" font-weight="700" fill="#111" font-family="Courier New, monospace">NORTH HARBOUR RESIDENTIAL</text>
+        <text x="610" y="626" font-size="9" fill="#333" font-family="Courier New, monospace">Level 3 – Floor Plan</text>
+        <text x="980" y="626" text-anchor="end" font-size="11" font-weight="700" fill="#111" font-family="Courier New, monospace">A-301</text>
+        <text x="610" y="648" font-size="8" fill="#333" font-family="Courier New, monospace">Rev D  ·  3 Jun 2026  ·  1:100</text>
+        <text x="610" y="672" font-size="8" fill="#333" font-family="Courier New, monospace">ARCHITECTURAL  ·  IFC</text>
+        <text x="610" y="712" font-size="7" fill="#666" font-family="Courier New, monospace">Drawn</text>
+        <text x="610" y="724" font-size="7.5" font-weight="700" fill="#333" font-family="Courier New, monospace">M.Nguyen</text>
+        <text x="744" y="712" font-size="7" fill="#666" font-family="Courier New, monospace">Checked</text>
+        <text x="744" y="724" font-size="7.5" font-weight="700" fill="#333" font-family="Courier New, monospace">S.Kim</text>
+        <text x="810" y="712" font-size="7" fill="#666" font-family="Courier New, monospace">Approved</text>
+        <text x="810" y="724" font-size="7.5" font-weight="700" fill="#333" font-family="Courier New, monospace">B.Harrison</text>
+      </svg>`;
+
+      // Generic SVG for other drawings
+      const svgGeneric = (num, title) => `<svg viewBox="0 0 600 450" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;transform:scale(${zoom});transform-origin:center center;transition:transform .2s">
+        <rect width="600" height="450" fill="#f9f8f4"/>
+        <rect x="40" y="40" width="520" height="340" fill="none" stroke="#1a1a1a" stroke-width="5"/>
+        ${[1,2,3,4].map(i=>`<line x1="${40+i*104}" y1="40" x2="${40+i*104}" y2="380" stroke="#ccc" stroke-width="0.7" stroke-dasharray="4,3"/>`).join('')}
+        ${[1,2,3].map(i=>`<line x1="40" y1="${40+i*85}" x2="560" y2="${40+i*85}" stroke="#ccc" stroke-width="0.7" stroke-dasharray="4,3"/>`).join('')}
+        <text x="300" y="220" text-anchor="middle" font-size="22" fill="#d1d5db" font-family="Courier New, monospace">${num}</text>
+        <text x="300" y="244" text-anchor="middle" font-size="11" fill="#9ca3af" font-family="Courier New, monospace">${title}</text>
+        <rect x="350" y="390" width="250" height="55" fill="white" stroke="#1a1a1a" stroke-width="1"/>
+        <text x="360" y="406" font-size="8" fill="#333" font-family="Courier New, monospace">NORTH HARBOUR RESIDENTIAL</text>
+        <text x="360" y="418" font-size="7" fill="#666" font-family="Courier New, monospace">${title}</text>
+        <text x="590" y="418" text-anchor="end" font-size="9" font-weight="700" fill="#111" font-family="Courier New, monospace">${num}</text>
+        <text x="360" y="432" font-size="7" fill="#666" font-family="Courier New, monospace">Rev A  ·  STRUCTURAL</text>
+      </svg>`;
+
+      const svgContent = doc.num === 'A-301' ? svgA301 : svgGeneric(doc.num, doc.name);
+
+      const infoPanel = `<div class="mob-dwg-info-panel ${showInfo?'open':''}" id="mob-dwg-info-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div style="font-size:14px;font-weight:700;color:#111827">ℹ Title Block</div>
+          <button id="mob-dwg-info-close" style="background:#f3f4f6;border:none;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#6b7280;font-size:16px">×</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-bottom:14px">
+          <div><div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Drawing No.</div><div style="font-size:12px;font-weight:600;color:#111">${doc.num}</div></div>
+          <div><div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Title</div><div style="font-size:12px;font-weight:600;color:#111">${doc.name}</div></div>
+          <div><div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Revision</div><div style="font-size:12px;font-weight:600;color:#6559FF">${doc.rev}</div></div>
+          <div><div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Date</div><div style="font-size:12px;font-weight:600;color:#111">${doc.uploaded}</div></div>
+          <div><div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Scale</div><div style="font-size:12px;font-weight:600;color:#111">1:100</div></div>
+          <div><div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Discipline</div><div style="font-size:12px;font-weight:600;color:#111">${folder.label.toUpperCase()}</div></div>
+          <div><div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Project</div><div style="font-size:12px;font-weight:600;color:#111">North Harbour Residential</div></div>
+          <div><div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Approved by</div><div style="font-size:12px;font-weight:600;color:#111">B. Harrison</div></div>
+        </div>
+        ${doc.num === 'A-301' ? `<div style="border-top:1px solid #e5e7eb;padding-top:12px">
+          <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:8px">Revision History</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span style="background:rgba(101,89,255,.12);color:#6559FF;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700">Rev D — Current ✓</span>
+            <span style="background:#f0f1f5;color:#6b7280;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600">Rev C — Superseded</span>
+            <span style="background:#f0f1f5;color:#6b7280;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600">Rev B — Superseded</span>
+          </div>
+        </div>` : ''}
+      </div>`;
+
+      return `<div class="mob-dwg-viewer">
+        <div class="mob-dwg-svg-wrap">${svgContent}</div>
+        <div class="mob-dwg-controls">
+          <button class="mob-dwg-ctrl-btn" id="mob-dwg-zoom-in">+</button>
+          <button class="mob-dwg-ctrl-btn" id="mob-dwg-zoom-out">−</button>
+        </div>
+        <button class="mob-dwg-info-btn" id="mob-dwg-info">ℹ Title Block</button>
+        ${infoPanel}
+      </div>`;
+    }
+
+    // Level 2 — drawing list
+    const stDot = { Current:'#16a34a', 'For Review':'#d97706', Superseded:'#9ca3af' };
+    return `<div style="padding:14px">
+      <button data-mob-dwg-back style="display:flex;align-items:center;gap:6px;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:#6559FF;padding:0;margin-bottom:14px">
+        ← ${folder.label}
+      </button>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${folder.sheets.map(s=>`<div data-mob-dwg-doc="${s.num}" style="background:white;border:1.5px solid #e5e7eb;border-radius:12px;padding:12px 14px;cursor:pointer;transition:box-shadow .12s" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,.09)'" onmouseout="this.style.boxShadow='none'">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#111827">${s.num}</div>
+              <div style="font-size:12px;color:#374151;margin-top:2px">${s.name}</div>
+            </div>
+            <span style="background:rgba(101,89,255,.12);color:#6559FF;border-radius:8px;padding:2px 9px;font-size:11px;font-weight:700;flex-shrink:0">${s.rev}</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:5px">
+              <span style="width:6px;height:6px;border-radius:50%;background:${stDot[s.status]};flex-shrink:0"></span>
+              <span style="font-size:11px;font-weight:600;color:${stDot[s.status]}">${s.status}</span>
+            </div>
+            <span style="font-size:11px;color:#9ca3af">${s.uploaded}</span>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
   const fl = flow;
+  const inDrawings = !fl && S.mobileScreen === 'drawings';
+
+  // Topbar: different for drawings viewer vs normal
+  function topbar() {
+    if (inDrawings && S.mobileDwgDoc) {
+      const folder = ['architectural','structural','civil','services'];
+      const fObj = { architectural:{sheets:[{num:'A-301'},{num:'A-302'},{num:'A-303'}]}, structural:{sheets:[{num:'S-001'},{num:'S-002'},{num:'S-003'},{num:'S-004'}]}, civil:{sheets:[{num:'C-001'},{num:'C-002'},{num:'C-003'}]}, services:{sheets:[{num:'M-001'},{num:'E-001'}]} };
+      const revMap = { 'A-301': S.dwgLatestRev ? 'Rev '+S.dwgLatestRev : 'Rev D', 'A-302':'Rev B','A-303':'Rev A','S-001':'Rev C','S-002':'Rev C','S-003':'Rev B','S-004':'Rev A','C-001':'Rev B','C-002':'Rev B','C-003':'Rev A','M-001':'Rev A','E-001':'Rev A' };
+      const rev = revMap[S.mobileDwgDoc] || 'Rev A';
+      return `<div style="background:#1F2533;padding:10px 14px 14px;display:flex;align-items:center;gap:10px">
+        <button data-mob-dwg-back style="background:rgba(255,255,255,0.1);border:none;border-radius:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:white;font-size:18px">‹</button>
+        <div style="flex:1">
+          <div style="color:white;font-weight:700;font-size:15px">${S.mobileDwgDoc} · ${rev}</div>
+          <div style="color:rgba(255,255,255,0.45);font-size:11px;margin-top:1px">North Harbour Residential</div>
+        </div>
+        <button id="mobile-close" style="background:rgba(255,255,255,0.1);border:none;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:white;font-size:18px;line-height:1">×</button>
+      </div>`;
+    }
+    if (inDrawings) {
+      return `<div style="background:#1F2533;padding:10px 14px 14px;display:flex;align-items:center;gap:10px">
+        <button data-mob-dwg-back style="background:rgba(255,255,255,0.1);border:none;border-radius:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:white;font-size:18px">‹</button>
+        <div style="flex:1">
+          <div style="color:white;font-weight:700;font-size:15px">${S.mobileDwgFolder ? (['architectural','structural','civil','services'].includes(S.mobileDwgFolder) ? {architectural:'Architectural',structural:'Structural',civil:'Civil',services:'Services'}[S.mobileDwgFolder] : 'Drawings') : 'Drawings'}</div>
+          <div style="color:rgba(255,255,255,0.45);font-size:11px;margin-top:1px">North Harbour Residential</div>
+        </div>
+        <button id="mobile-close" style="background:rgba(255,255,255,0.1);border:none;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:white;font-size:18px;line-height:1">×</button>
+      </div>`;
+    }
+    return `<div style="background:#1F2533;padding:10px 14px 14px;display:flex;align-items:center;gap:10px">
+      ${fl
+        ? `<button data-mob-back style="background:rgba(255,255,255,0.1);border:none;border-radius:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:white;font-size:18px">‹</button>`
+        : `<button id="mob-hamburger" style="background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:34px;height:34px;flex-shrink:0;padding:0">
+            <span style="display:block;width:20px;height:2px;background:white;border-radius:2px"></span>
+            <span style="display:block;width:20px;height:2px;background:white;border-radius:2px"></span>
+            <span style="display:block;width:20px;height:2px;background:white;border-radius:2px"></span>
+          </button>`
+      }
+      <div style="flex:1">
+        <div style="color:white;font-weight:700;font-size:15px">${fl ? fl.label : 'SC Agent'}</div>
+        <div style="color:rgba(255,255,255,0.45);font-size:11px;margin-top:1px;display:flex;align-items:center;gap:5px">
+          ${fl ? 'North Harbour Residential'
+               : `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0"></span> Online · North Harbour`}
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <div style="width:30px;height:30px;border-radius:50%;background:#6559FF;color:white;font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:center">BW</div>
+        <button id="mobile-close" style="background:rgba(255,255,255,0.1);border:none;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:white;font-size:18px;line-height:1">×</button>
+      </div>
+    </div>`;
+  }
+
   return `<div class="mobile-overlay" id="mobile-overlay">
     <div class="mobile-frame">
       <!-- Status bar -->
@@ -5123,32 +5538,12 @@ function vMobile() {
         </div>
       </div>
       <!-- App topbar -->
-      <div style="background:#1F2533;padding:10px 14px 14px;display:flex;align-items:center;gap:10px">
-        ${fl
-          ? `<button data-mob-back style="background:rgba(255,255,255,0.1);border:none;border-radius:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:white;font-size:18px">‹</button>`
-          : `<button id="mob-hamburger" style="background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:34px;height:34px;flex-shrink:0;padding:0">
-              <span style="display:block;width:20px;height:2px;background:white;border-radius:2px"></span>
-              <span style="display:block;width:20px;height:2px;background:white;border-radius:2px"></span>
-              <span style="display:block;width:20px;height:2px;background:white;border-radius:2px"></span>
-            </button>`
-        }
-        <div style="flex:1">
-          <div style="color:white;font-weight:700;font-size:15px">${fl ? fl.label : 'SC Agent'}</div>
-          <div style="color:rgba(255,255,255,0.45);font-size:11px;margin-top:1px;display:flex;align-items:center;gap:5px">
-            ${fl ? 'North Harbour Residential'
-                 : `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0"></span> Online · North Harbour`}
-          </div>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center">
-          <div style="width:30px;height:30px;border-radius:50%;background:#6559FF;color:white;font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:center">BW</div>
-          <button id="mobile-close" style="background:rgba(255,255,255,0.1);border:none;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:white;font-size:18px;line-height:1">×</button>
-        </div>
-      </div>
+      ${topbar()}
       <!-- Body -->
-      <div class="mobile-body" id="mobile-body">
-        ${fl ? chatScreen() : agentScreen()}
+      <div class="mobile-body" id="mobile-body" style="${inDrawings && S.mobileDwgDoc ? 'padding:0;display:flex;flex-direction:column;overflow:hidden;' : ''}">
+        ${inDrawings ? mobileDwgScreen() : (fl ? chatScreen() : agentScreen())}
       </div>
-      <!-- Input bar — always shown -->
+      ${inDrawings && S.mobileDwgDoc ? '' : `<!-- Input bar — always shown -->
       <div style="background:white;border-top:1px solid #e5e7eb;padding:10px 12px 14px">
         <div style="display:flex;align-items:flex-end;gap:8px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:22px;padding:8px 10px 8px 14px">
           <textarea id="mob-input" placeholder="Ask SC Agent anything..." rows="1" style="flex:1;border:none;background:none;resize:none;font-size:14px;color:#111827;line-height:1.4;font-family:inherit;outline:none;max-height:80px;overflow-y:auto"></textarea>
@@ -5156,7 +5551,7 @@ function vMobile() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
           </button>
         </div>
-      </div>
+      </div>`}
       <!-- Drawer -->
       ${drawer()}
     </div>
@@ -5176,6 +5571,7 @@ function render() {
     </div>
     ${demoControlsPanel()}
     ${procureProModal()}
+    ${dwgUploadModal()}
     ${vMobile()}`;
 
   // Nav clicks (sidebar + generic [data-view] except back-button which has data-exit-project)
@@ -5658,15 +6054,19 @@ function render() {
       e.stopPropagation();
       const flowId = el.dataset.mobAction;
       S = { ...S, mobileDrawerOpen: false };
-      if (MOBILE_FLOWS[flowId]) {
+      if (flowId === 'drawings') {
+        S = { ...S, mobileScreen: 'drawings', mobileDwgFolder: null, mobileDwgDoc: null, mobileFlow: null, mobileStep: 0, mobileMsgs: [], mobileTyping: false };
+        render();
+      } else if (MOBILE_FLOWS[flowId]) {
         // Start the flow
         el.dispatchEvent(new Event('_startflow'));
+      } else {
+        render();
       }
-      render();
     })
   );
 
-  // Back to home
+  // Back to home (or drawings nav)
   document.querySelectorAll('[data-mob-back]').forEach(el =>
     el.addEventListener('click', e => {
       e.stopPropagation();
@@ -5674,6 +6074,61 @@ function render() {
       render();
     })
   );
+
+  // Mobile drawing viewer nav
+  document.querySelectorAll('[data-mob-dwg-back]').forEach(el =>
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      if (S.mobileDwgDoc) {
+        S = { ...S, mobileDwgDoc: null, mobileDwgZoom: 1, mobileDwgShowInfo: false };
+      } else if (S.mobileDwgFolder) {
+        S = { ...S, mobileDwgFolder: null };
+      } else {
+        S = { ...S, mobileScreen: 'agent' };
+      }
+      render();
+    })
+  );
+
+  document.querySelectorAll('[data-mob-dwg-folder]').forEach(el =>
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      S = { ...S, mobileDwgFolder: el.dataset.mobDwgFolder };
+      render();
+    })
+  );
+
+  document.querySelectorAll('[data-mob-dwg-doc]').forEach(el =>
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      S = { ...S, mobileDwgDoc: el.dataset.mobDwgDoc, mobileDwgZoom: 1, mobileDwgShowInfo: false };
+      render();
+    })
+  );
+
+  document.getElementById('mob-dwg-zoom-in')?.addEventListener('click', e => {
+    e.stopPropagation();
+    S = { ...S, mobileDwgZoom: Math.min(3, (S.mobileDwgZoom || 1) + 0.25) };
+    render();
+  });
+
+  document.getElementById('mob-dwg-zoom-out')?.addEventListener('click', e => {
+    e.stopPropagation();
+    S = { ...S, mobileDwgZoom: Math.max(0.5, (S.mobileDwgZoom || 1) - 0.25) };
+    render();
+  });
+
+  document.getElementById('mob-dwg-info')?.addEventListener('click', e => {
+    e.stopPropagation();
+    S = { ...S, mobileDwgShowInfo: !S.mobileDwgShowInfo };
+    render();
+  });
+
+  document.getElementById('mob-dwg-info-close')?.addEventListener('click', e => {
+    e.stopPropagation();
+    S = { ...S, mobileDwgShowInfo: false };
+    render();
+  });
 
   // Chip tapped — send as user message, advance flow
   document.querySelectorAll('[data-mob-chip]').forEach(el =>
@@ -5744,6 +6199,49 @@ function render() {
       const txt = e.target.value.trim();
       if (txt) { e.target.value = ''; mobAdvanceFlow(txt); }
     }
+  });
+
+  // ── Drawing Upload Modal handlers ───────────────────────────
+  document.getElementById('dwg-upload-btn')?.addEventListener('click', e => {
+    e.stopPropagation();
+    S = { ...S, dwgUploadOpen: true, dwgUploadStep: 0, dwgProcessingIdx: 0 };
+    render();
+  });
+
+  document.getElementById('dwg-upload-overlay')?.addEventListener('click', e => {
+    if (e.target === e.currentTarget) {
+      S = { ...S, dwgUploadOpen: false };
+      render();
+    }
+  });
+
+  document.getElementById('dwg-file-input')?.addEventListener('change', e => {
+    if (!e.target.files || !e.target.files.length) return;
+    S = { ...S, dwgUploadStep: 1, dwgProcessingIdx: 0 };
+    render();
+    let idx = 0;
+    function advanceProcessing() {
+      if (idx < 5) {
+        idx++;
+        S = { ...S, dwgProcessingIdx: idx };
+        render();
+        if (idx < 5) setTimeout(advanceProcessing, 900);
+        else setTimeout(() => { S = { ...S, dwgUploadStep: 2 }; render(); }, 900);
+      }
+    }
+    setTimeout(advanceProcessing, 900);
+  });
+
+  document.getElementById('dwg-confirm-upload')?.addEventListener('click', e => {
+    e.stopPropagation();
+    S = { ...S, dwgUploadStep: 3, dwgLatestRev: 'D' };
+    render();
+  });
+
+  document.getElementById('dwg-close-upload')?.addEventListener('click', e => {
+    e.stopPropagation();
+    S = { ...S, dwgUploadOpen: false };
+    render();
   });
 
   // ── SWMS & HRCW event handlers ───────────────────────────────
