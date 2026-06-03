@@ -5472,7 +5472,7 @@ function vMobile() {
       const svgContentA4 = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#1a1a2e;transform:scale(${zoom});transform-origin:center center;transition:transform .2s">
         <img src="./sample-drawing.jpg" alt="Main Floor Plan" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:4px" onerror="this.parentElement.innerHTML='<div style=\\'color:#9ca3af;text-align:center;padding:40px;font-size:12px\\'>📄 Main Floor Plan<br>A-4 · Oct 2018</div>'">
       </div>`;
-      const svgContent = doc.num === 'A-301' ? svgA301 : doc.num === 'A-4' ? svgContentA4 : svgGeneric(doc.num, doc.name);
+      const svgContent = svgContentA4;
 
       const infoPanel = `<div class="mob-dwg-info-panel ${showInfo?'open':''}" id="mob-dwg-info-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
