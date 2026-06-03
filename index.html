@@ -494,6 +494,10 @@
     .mob-done-btn { background:#6559FF;color:white;border:none;border-radius:12px;padding:11px 28px;font-size:13px;font-weight:700;cursor:pointer; }
     .mob-open-btn { display:flex;align-items:center;gap:6px;background:#1F2533;color:white;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .15s; }
     .mob-open-btn:hover { opacity:.85; }
+    .mob-drawer-overlay { position:absolute;inset:0;background:rgba(0,0,0,.35);z-index:50;opacity:0;pointer-events:none;transition:opacity .25s ease;border-radius:50px; }
+    .mob-drawer-overlay.open { opacity:1;pointer-events:all; }
+    .mob-drawer { position:absolute;top:0;left:0;bottom:0;width:290px;background:white;z-index:60;display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);border-radius:50px 0 0 50px; }
+    .mob-drawer.open { transform:translateX(0); }
   </style>
 </head>
 <body>
@@ -755,7 +759,7 @@ const WORKERS = [
 ];
 
 // ── State ────────────────────────────────────────────────────
-let S = { mode: 'sc', view: 'home', activeDrawing: 0, project: null, inProject: false, showProjectDrop: false, projectTab: 'overview', dwgTab: 'details', dwgView: 'register', activeMarkup: null, activeTool: 'select', progStep: null, progSource: null, progTopTab: 'schedule', progSubTab: 'master', ganttView: 'week', ganttFilter: 'all', ganttCollapsed: {}, ganttExpanded: null, jobsView: 'grid', jobsExpanded: {}, showDemoPanel: false, showProcureProModal: false, phase: 1, featureFlags: { procureproSchedule: false, workerPassport: false }, passportView: 'dashboard', passportWorker: null, passportVerifyStep: 0, passportVerifyWorker: null, passportInductionStep: 0, swmsView: 'register', swmsDoc: null, swmsTab: 'document', swmsKioskCount: 0, showMobile: false, mobileTab: 'home', mobileFlow: null, mobileStep: 0, mobileMsgs: [], mobileTyping: false, mobileChecked: [], mobileDeclared: [], mobileSigned: false };
+let S = { mode: 'sc', view: 'home', activeDrawing: 0, project: null, inProject: false, showProjectDrop: false, projectTab: 'overview', dwgTab: 'details', dwgView: 'register', activeMarkup: null, activeTool: 'select', progStep: null, progSource: null, progTopTab: 'schedule', progSubTab: 'master', ganttView: 'week', ganttFilter: 'all', ganttCollapsed: {}, ganttExpanded: null, jobsView: 'grid', jobsExpanded: {}, showDemoPanel: false, showProcureProModal: false, phase: 1, featureFlags: { procureproSchedule: false, workerPassport: false }, passportView: 'dashboard', passportWorker: null, passportVerifyStep: 0, passportVerifyWorker: null, passportInductionStep: 0, swmsView: 'register', swmsDoc: null, swmsTab: 'document', swmsKioskCount: 0, showMobile: false, mobileDrawerOpen: false, mobileFlow: null, mobileStep: 0, mobileMsgs: [], mobileTyping: false, mobileChecked: [], mobileDeclared: [], mobileSigned: false };
 
 // Set phase (does not affect feature flags)
 function setPhase(n) {
@@ -4898,9 +4902,60 @@ function vMobile() {
   const msgs = S.mobileMsgs || [];
   const checked = S.mobileChecked || [];
   const declared = S.mobileDeclared || [];
+  const drawerOpen = S.mobileDrawerOpen || false;
 
   function md(t) { return (t||'').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>'); }
 
+  // ── Drawer ──────────────────────────────────────────────────
+  function drawer() {
+    const items = [
+      { label:'FIELD', section:true },
+      { id:'inspection', icon:'📋', label:'Inspections', badge:null },
+      { id:'hazard',     icon:'⚠️', label:'Actions',      badge:'3' },
+      { id:'swms',       icon:'✍️', label:'SWMS & HRCW',  badge:null },
+      { id:'checkin',    icon:'🪪', label:'Worker Passport', badge:null },
+      { label:'TOOLS', section:true },
+      { id:'drawings',   icon:'📐', label:'Drawings',     badge:null },
+      { id:'programme',  icon:'📅', label:'Programme',    badge:null },
+      { label:'ACCOUNT', section:true },
+      { id:'settings',   icon:'⚙️', label:'Settings',     badge:null },
+    ];
+    return `
+      <div class="mob-drawer-overlay ${drawerOpen?'open':''}" id="mob-drawer-overlay">
+        <div class="mob-drawer ${drawerOpen?'open':''}">
+          <div style="padding:52px 18px 16px;border-bottom:1px solid #e5e7eb;position:relative">
+            <button id="mob-drawer-close" style="position:absolute;top:16px;right:14px;width:30px;height:30px;border:none;background:#f3f4f6;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:#6b7280">×</button>
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="width:44px;height:44px;border-radius:50%;background:#6559FF;color:white;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0">BW</div>
+              <div>
+                <div style="font-size:15px;font-weight:700;color:#111827">Blake Wyer</div>
+                <div style="font-size:12px;color:#6b7280;margin-top:1px">Safety Lead · BDW Constructions</div>
+              </div>
+            </div>
+            <div style="margin-top:12px;background:#ede9fe;border-radius:8px;padding:7px 10px;font-size:12px;color:#6559FF;font-weight:600;display:flex;align-items:center;gap:6px">
+              <span>📍</span> North Harbour Residential
+            </div>
+          </div>
+          <div style="flex:1;overflow-y:auto;padding:6px 0">
+            ${items.map(item => {
+              if (item.section) return `<div style="font-size:10px;font-weight:700;color:#9ca3af;letter-spacing:.7px;text-transform:uppercase;padding:12px 20px 4px">${item.label}</div>`;
+              return `<button data-mob-action="${item.id}" data-mob-drawer-nav style="display:flex;align-items:center;gap:12px;padding:12px 20px;width:100%;text-align:left;border:none;background:none;cursor:pointer;font-size:14px;color:#111827;font-weight:500;transition:background .12s">
+                <span style="width:22px;text-align:center;font-size:18px">${item.icon}</span>
+                <span style="flex:1">${item.label}</span>
+                ${item.badge ? `<span style="min-width:18px;height:18px;padding:0 5px;background:#dc2626;color:white;border-radius:9px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">${item.badge}</span>` : ''}
+              </button>`;
+            }).join('')}
+          </div>
+          <div style="padding:8px 12px 20px;border-top:1px solid #e5e7eb">
+            <button style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:9px;cursor:pointer;font-size:13px;color:#6b7280;font-weight:500;border:none;background:none;width:100%;text-align:left">
+              <span>🚪</span> Sign out
+            </button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ── Cards inside messages ────────────────────────────────────
   function renderCard(msg) {
     if (!msg.card) return '';
     if (msg.card === 'checklist') {
@@ -5004,57 +5059,53 @@ function vMobile() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
-  function homeScreen() {
-    return `<div style="padding:18px 16px">
-      <div style="margin-bottom:22px">
-        <div style="font-size:20px;font-weight:800;color:#111827;letter-spacing:-0.3px">${greeting}, Blake 👋</div>
-        <div style="font-size:13px;color:#6b7280;margin-top:3px">North Harbour Residential · Gate B</div>
-      </div>
-      <div style="background:linear-gradient(135deg,#1F2533 0%,#2a3347 100%);border-radius:20px;padding:18px;margin-bottom:22px;position:relative;overflow:hidden">
-        <div style="position:absolute;top:-20px;right:-20px;width:100px;height:100px;border-radius:50%;background:rgba(101,89,255,0.25)"></div>
-        <div style="position:absolute;bottom:-25px;right:30px;width:70px;height:70px;border-radius:50%;background:rgba(0,209,255,0.12)"></div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;position:relative">
-          <div style="width:38px;height:38px;border-radius:50%;background:#6559FF;display:flex;align-items:center;justify-content:center">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+  // Agent-first opening screen — today's brief + chips then empty chat
+  function agentScreen() {
+    const briefItems = [
+      { text: 'Pre-start inspection due — Level 2 (08:30 AM)', urgent: true },
+      { text: 'SWMS sign-on required before electrical work begins', urgent: true },
+      { text: '3 open actions to review today', urgent: false },
+      { text: 'Site condition: wet ground — extra slip controls active', urgent: false },
+    ];
+    const chips = [
+      { id:'inspection', label:'📋 Start pre-start inspection' },
+      { id:'swms',       label:'✍️ Sign on to SWMS' },
+      { id:'hazard',     label:'⚠️ Log a hazard' },
+      { id:'checkin',    label:'🪪 Check a worker in' },
+    ];
+    return `<div style="display:flex;flex-direction:column;min-height:100%">
+      <!-- Today's brief from schedule -->
+      <div style="margin:12px 14px 0;background:linear-gradient(135deg,#1e2d4d,#1F2533);border-radius:16px;padding:14px 16px;color:white">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div style="width:26px;height:26px;border-radius:50%;background:#6559FF;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
           </div>
-          <div>
-            <div style="color:white;font-weight:700;font-size:14px">SC Agent</div>
-            <div style="color:rgba(255,255,255,0.5);font-size:11px;display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e"></span>Online · Powered by SafetyCulture AI</div>
-          </div>
+          <span style="font-size:12px;font-weight:700;letter-spacing:.1px">Today's brief · Tue 3 Jun</span>
         </div>
-        <div style="color:rgba(255,255,255,0.85);font-size:13px;line-height:1.6;position:relative">What do you need to do? I can run inspections, log hazards, process SWMS sign-ons, and verify workers — hands-free.</div>
-      </div>
-      <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px">Quick actions</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px">
-        ${[
-          {id:'inspection',icon:'📋',label:'Pre-Start Inspection',sub:'Daily safety check',col:'rgba(101,89,255,0.08)',bdr:'rgba(101,89,255,0.2)'},
-          {id:'hazard',icon:'⚠️',label:'Report Hazard',sub:'Log & alert supervisor',col:'rgba(220,38,38,0.06)',bdr:'rgba(220,38,38,0.2)'},
-          {id:'swms',icon:'✍️',label:'SWMS Sign-On',sub:'Electrical Isolation v3.1',col:'rgba(245,158,11,0.07)',bdr:'rgba(245,158,11,0.25)'},
-          {id:'checkin',icon:'🪪',label:'Worker Check-In',sub:'Scan NFC / QR passport',col:'rgba(14,165,233,0.07)',bdr:'rgba(14,165,233,0.2)'},
-        ].map(a=>`<button data-mob-action="${a.id}" style="background:${a.col};border:1.5px solid ${a.bdr};border-radius:16px;padding:14px 13px;text-align:left;cursor:pointer;transition:all .15s">
-          <div style="font-size:26px;margin-bottom:9px">${a.icon}</div>
-          <div style="font-size:12px;font-weight:700;color:#111827;line-height:1.3">${a.label}</div>
-          <div style="font-size:11px;color:#9ca3af;margin-top:3px">${a.sub}</div>
-        </button>`).join('')}
-      </div>
-      <div style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px">Recent activity</div>
-      ${[
-        {icon:'✅',label:'Pre-Start Inspection',sub:'Completed · Level 2 · 07:55 AM',bg:'#dcfce7'},
-        {icon:'📄',label:'SWMS Reviewed',sub:'Electrical Isolation v3.1 · Yesterday',bg:'#ede9fe'},
-        {icon:'⚠️',label:'Hazard Logged',sub:'Slip risk — stairwell · 2 days ago',bg:'#fef9c3'},
-      ].map(r=>`<div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #f3f4f6">
-        <div style="width:38px;height:38px;border-radius:11px;background:${r.bg};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${r.icon}</div>
-        <div>
-          <div style="font-size:13px;font-weight:600;color:#111827">${r.label}</div>
-          <div style="font-size:11px;color:#9ca3af;margin-top:2px">${r.sub}</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${briefItems.map(b=>`<div style="display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.4">
+            <div style="width:5px;height:5px;border-radius:50%;background:${b.urgent?'#fbbf24':'rgba(255,255,255,.45)'};flex-shrink:0;margin-top:4px"></div>
+            <span style="color:${b.urgent?'rgba(255,255,255,.95)':'rgba(255,255,255,.65)'}">${b.text}</span>
+          </div>`).join('')}
         </div>
-        <svg style="margin-left:auto;flex-shrink:0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-      </div>`).join('')}
+      </div>
+      <!-- Schedule chips -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;padding:12px 14px 4px">
+        ${chips.map(c=>`<button class="mob-chip" data-mob-action="${c.id}" style="font-size:12px;white-space:nowrap">${c.label}</button>`).join('')}
+      </div>
+      <!-- Chat area (empty state) -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 20px 16px;gap:10px;text-align:center">
+        <div style="width:52px;height:52px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;justify-content:center;margin-bottom:4px">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6559FF" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <div style="font-size:16px;font-weight:700;color:#111827">${greeting}, Blake 👋</div>
+        <div style="font-size:13px;color:#6b7280;line-height:1.6;max-width:240px">Tap a suggestion above or type anything. I can run inspections, log hazards, process SWMS sign-ons, and verify workers.</div>
+      </div>
     </div>`;
   }
 
   function chatScreen() {
-    return `<div style="padding:16px;min-height:100%" id="mob-chat">
+    return `<div style="padding:14px 16px;display:flex;flex-direction:column;gap:14px;min-height:100%" id="mob-chat">
       ${msgs.map(m => renderMsg(m)).join('')}
       ${typingDots()}
     </div>`;
@@ -5063,6 +5114,7 @@ function vMobile() {
   const fl = flow;
   return `<div class="mobile-overlay" id="mobile-overlay">
     <div class="mobile-frame">
+      <!-- Status bar -->
       <div style="background:#1F2533;padding:12px 22px 8px;display:flex;justify-content:space-between;align-items:center">
         <span style="color:white;font-size:13px;font-weight:700">9:41</span>
         <div style="display:flex;gap:6px;align-items:center">
@@ -5070,30 +5122,43 @@ function vMobile() {
           <svg width="16" height="10" viewBox="0 0 20 12" fill="none" stroke="white" stroke-width="2" opacity=".8"><rect x="0" y="1" width="16" height="10" rx="2"/><rect x="2" y="3" width="10" height="6" rx="1" fill="white"/><rect x="17" y="4" width="3" height="4" rx="1" fill="white" opacity=".5"/></svg>
         </div>
       </div>
-      <div style="background:#1F2533;padding:10px 16px 16px;display:flex;align-items:center;gap:10px">
-        ${fl ? `<button data-mob-back style="background:rgba(255,255,255,0.1);border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:white;font-size:16px">‹</button>` : ''}
+      <!-- App topbar -->
+      <div style="background:#1F2533;padding:10px 14px 14px;display:flex;align-items:center;gap:10px">
+        ${fl
+          ? `<button data-mob-back style="background:rgba(255,255,255,0.1);border:none;border-radius:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:white;font-size:18px">‹</button>`
+          : `<button id="mob-hamburger" style="background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:34px;height:34px;flex-shrink:0;padding:0">
+              <span style="display:block;width:20px;height:2px;background:white;border-radius:2px"></span>
+              <span style="display:block;width:20px;height:2px;background:white;border-radius:2px"></span>
+              <span style="display:block;width:20px;height:2px;background:white;border-radius:2px"></span>
+            </button>`
+        }
         <div style="flex:1">
-          <div style="color:white;font-weight:700;font-size:15px">${fl ? fl.label : 'SafetyCulture'}</div>
-          <div style="color:rgba(255,255,255,0.45);font-size:11px;margin-top:1px">${fl ? 'SC Agent · North Harbour' : 'North Harbour Residential'}</div>
+          <div style="color:white;font-weight:700;font-size:15px">${fl ? fl.label : 'SC Agent'}</div>
+          <div style="color:rgba(255,255,255,0.45);font-size:11px;margin-top:1px;display:flex;align-items:center;gap:5px">
+            ${fl ? 'North Harbour Residential'
+                 : `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0"></span> Online · North Harbour`}
+          </div>
         </div>
-        <button id="mobile-close" style="background:rgba(255,255,255,0.1);border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:white;font-size:18px;line-height:1">×</button>
+        <div style="display:flex;gap:6px;align-items:center">
+          <div style="width:30px;height:30px;border-radius:50%;background:#6559FF;color:white;font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:center">BW</div>
+          <button id="mobile-close" style="background:rgba(255,255,255,0.1);border:none;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:white;font-size:18px;line-height:1">×</button>
+        </div>
       </div>
+      <!-- Body -->
       <div class="mobile-body" id="mobile-body">
-        ${fl ? chatScreen() : homeScreen()}
+        ${fl ? chatScreen() : agentScreen()}
       </div>
-      ${fl && !S.mobileTyping ? `<div style="padding:10px 12px;border-top:1px solid #e5e7eb;background:white;display:flex;gap:8px;align-items:center">
-        <input id="mob-input" placeholder="Message SC Agent..." style="flex:1;border:1.5px solid #e5e7eb;border-radius:24px;padding:9px 16px;font-size:13px;outline:none;color:#111827;font-family:inherit"/>
-        <button id="mob-send" style="width:36px;height:36px;border-radius:50%;background:#6559FF;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-        </button>
-      </div>` : ''}
-      <div style="display:flex;background:white;border-top:1px solid #e5e7eb;padding:8px 0 16px">
-        ${[{id:'home',icon:'⊞',label:'Home'},{id:'inspect',icon:'✓',label:'Inspect'},{id:'actions',icon:'⚡',label:'Actions'},{id:'learn',icon:'▣',label:'Learn'},{id:'me',icon:'◉',label:'Me'}].map(t=>`
-        <button data-mob-tab="${t.id}" style="flex:1;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0">
-          <span style="font-size:18px;line-height:1;color:${(S.mobileTab||'home')===t.id?'#6559FF':'#9ca3af'}">${t.icon}</span>
-          <span style="font-size:10px;font-weight:${(S.mobileTab||'home')===t.id?'700':'500'};color:${(S.mobileTab||'home')===t.id?'#6559FF':'#9ca3af'}">${t.label}</span>
-        </button>`).join('')}
+      <!-- Input bar — always shown -->
+      <div style="background:white;border-top:1px solid #e5e7eb;padding:10px 12px 14px">
+        <div style="display:flex;align-items:flex-end;gap:8px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:22px;padding:8px 10px 8px 14px">
+          <textarea id="mob-input" placeholder="Ask SC Agent anything..." rows="1" style="flex:1;border:none;background:none;resize:none;font-size:14px;color:#111827;line-height:1.4;font-family:inherit;outline:none;max-height:80px;overflow-y:auto"></textarea>
+          <button id="mob-send" style="width:34px;height:34px;border-radius:50%;background:#6559FF;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          </button>
+        </div>
       </div>
+      <!-- Drawer -->
+      ${drawer()}
     </div>
   </div>`;
 }
@@ -5518,10 +5583,14 @@ function render() {
     mobAgentReply(nextStep);
   }
 
+  function mobReset(extra) {
+    return { mobileFlow: null, mobileStep: 0, mobileMsgs: [], mobileTyping: false, mobileChecked: [], mobileDeclared: [], mobileSigned: false, mobileDrawerOpen: false, ...(extra||{}) };
+  }
+
   // Open mobile overlay
   document.getElementById('mobile-open-btn')?.addEventListener('click', e => {
     e.stopPropagation();
-    S = { ...S, showMobile: true, mobileTab: 'home', mobileFlow: null, mobileStep: 0, mobileMsgs: [], mobileTyping: false, mobileChecked: [], mobileDeclared: [], mobileSigned: false };
+    S = { ...S, showMobile: true, ...mobReset() };
     render();
   });
 
@@ -5564,11 +5633,44 @@ function render() {
     })
   );
 
+  // Hamburger → open drawer
+  document.getElementById('mob-hamburger')?.addEventListener('click', e => {
+    e.stopPropagation();
+    S = { ...S, mobileDrawerOpen: true };
+    render();
+  });
+  // Drawer overlay click → close drawer
+  document.getElementById('mob-drawer-overlay')?.addEventListener('click', e => {
+    if (e.target.id === 'mob-drawer-overlay') {
+      S = { ...S, mobileDrawerOpen: false };
+      render();
+    }
+  });
+  // Drawer close button
+  document.getElementById('mob-drawer-close')?.addEventListener('click', e => {
+    e.stopPropagation();
+    S = { ...S, mobileDrawerOpen: false };
+    render();
+  });
+  // Drawer nav items
+  document.querySelectorAll('[data-mob-drawer-nav]').forEach(el =>
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      const flowId = el.dataset.mobAction;
+      S = { ...S, mobileDrawerOpen: false };
+      if (MOBILE_FLOWS[flowId]) {
+        // Start the flow
+        el.dispatchEvent(new Event('_startflow'));
+      }
+      render();
+    })
+  );
+
   // Back to home
   document.querySelectorAll('[data-mob-back]').forEach(el =>
     el.addEventListener('click', e => {
       e.stopPropagation();
-      S = { ...S, mobileFlow: null, mobileStep: 0, mobileMsgs: [], mobileTyping: false, mobileChecked: [], mobileDeclared: [], mobileSigned: false };
+      S = { ...S, ...mobReset() };
       render();
     })
   );
@@ -5624,16 +5726,7 @@ function render() {
   document.querySelectorAll('[data-mob-done]').forEach(el =>
     el.addEventListener('click', e => {
       e.stopPropagation();
-      S = { ...S, mobileFlow: null, mobileStep: 0, mobileMsgs: [], mobileTyping: false, mobileChecked: [], mobileDeclared: [], mobileSigned: false };
-      render();
-    })
-  );
-
-  // Bottom nav tabs
-  document.querySelectorAll('[data-mob-tab]').forEach(el =>
-    el.addEventListener('click', e => {
-      e.stopPropagation();
-      S = { ...S, mobileTab: el.dataset.mobTab };
+      S = { ...S, ...mobReset() };
       render();
     })
   );
