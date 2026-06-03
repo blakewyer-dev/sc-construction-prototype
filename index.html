@@ -5549,7 +5549,7 @@ function vMobile() {
     if (inDrawings && S.mobileDwgDoc) {
       const folder = ['architectural','structural','civil','services'];
       const fObj = { architectural:{sheets:[{num:'A-301'},{num:'A-302'},{num:'A-303'}]}, structural:{sheets:[{num:'S-001'},{num:'S-002'},{num:'S-003'},{num:'S-004'}]}, civil:{sheets:[{num:'C-001'},{num:'C-002'},{num:'C-003'}]}, services:{sheets:[{num:'M-001'},{num:'E-001'}]} };
-      const revMap = { 'A-301': S.dwgLatestRev ? 'Rev '+S.dwgLatestRev : 'Rev D', 'A-302':'Rev B','A-303':'Rev A','S-001':'Rev C','S-002':'Rev C','S-003':'Rev B','S-004':'Rev A','C-001':'Rev B','C-002':'Rev B','C-003':'Rev A','M-001':'Rev A','E-001':'Rev A' };
+      const revMap = { 'A-301': S.dwgLatestRev ? 'Rev '+S.dwgLatestRev : 'Rev D', 'A-302':'Rev B','A-303':'Rev A','A-4':'Oct 2018','S-001':'Rev C','S-002':'Rev C','S-003':'Rev B','S-004':'Rev A','C-001':'Rev B','C-002':'Rev B','C-003':'Rev A','M-001':'Rev A','E-001':'Rev A' };
       const rev = revMap[S.mobileDwgDoc] || 'Rev A';
       return `<div style="background:#1F2533;padding:10px 14px 14px;display:flex;align-items:center;gap:10px">
         <button data-mob-dwg-back style="background:rgba(255,255,255,0.1);border:none;border-radius:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:white;font-size:18px">‹</button>
