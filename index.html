@@ -782,7 +782,7 @@ const WORKERS = [
 ];
 
 // ── State ────────────────────────────────────────────────────
-let S = { mode: 'sc', view: 'home', activeDrawing: 0, project: null, inProject: false, showProjectDrop: false, projectTab: 'overview', dwgTab: 'details', dwgView: 'register', activeMarkup: null, activeTool: 'select', progStep: null, progSource: null, progTopTab: 'schedule', progSubTab: 'master', ganttView: 'week', ganttFilter: 'all', ganttCollapsed: {}, ganttExpanded: null, jobsView: 'grid', jobsExpanded: {}, showDemoPanel: false, showProcureProModal: false, phase: 1, featureFlags: { procureproSchedule: false, workerPassport: false }, passportView: 'dashboard', passportWorker: null, passportVerifyStep: 0, passportVerifyWorker: null, passportInductionStep: 0, swmsView: 'register', swmsDoc: null, swmsTab: 'document', swmsKioskCount: 0, showMobile: false, mobileDrawerOpen: false, mobileFlow: null, mobileStep: 0, mobileMsgs: [], mobileTyping: false, mobileChecked: [], mobileDeclared: [], mobileSigned: false, dwgUploadOpen: false, dwgUploadStep: 0, dwgProcessingIdx: 0, dwgLatestRev: null, mobileScreen: 'agent', mobileDwgFolder: null, mobileDwgDoc: null, mobileDwgZoom: 1, mobileDwgShowInfo: false };
+let S = { mode: 'sc', view: 'home', activeDrawing: 0, project: null, inProject: false, showProjectDrop: false, projectTab: 'overview', dwgTab: 'details', dwgView: 'register', activeMarkup: null, activeTool: 'select', progStep: null, progSource: null, progTopTab: 'schedule', progSubTab: 'master', ganttView: 'week', ganttFilter: 'all', ganttCollapsed: {}, ganttExpanded: null, jobsView: 'grid', jobsExpanded: {}, showDemoPanel: false, showProcureProModal: false, phase: 1, featureFlags: { procureproSchedule: false, workerPassport: false }, passportView: 'dashboard', passportWorker: null, passportVerifyStep: 0, passportVerifyWorker: null, passportInductionStep: 0, swmsView: 'register', swmsDoc: null, swmsTab: 'document', swmsKioskCount: 0, showMobile: false, mobileDrawerOpen: false, mobileFlow: null, mobileStep: 0, mobileMsgs: [], mobileTyping: false, mobileChecked: [], mobileDeclared: [], mobileSigned: false, dwgUploadOpen: false, dwgUploadStep: 0, dwgProcessingIdx: 0, dwgLatestRev: null, dwgSampleMode: false, dwgSampleAdded: false, mobileScreen: 'agent', mobileDwgFolder: null, mobileDwgDoc: null, mobileDwgZoom: 1, mobileDwgShowInfo: false };
 
 // Set phase (does not affect feature flags)
 function setPhase(n) {
@@ -2259,6 +2259,7 @@ function vConDrawings() {
       { num:'A-301', name:'Level 3 – Floor Plan',          rev: S.dwgLatestRev ? 'Rev '+S.dwgLatestRev : 'Rev C', status:'Current',    uploaded: S.dwgLatestRev ? '3 Jun 2026' : '8 May 2026',  markups:2 },
       { num:'A-302', name:'Level 3 – Reflected Ceiling',   rev:'Rev B', status:'Current',    uploaded:'5 May 2026',  markups:0 },
       { num:'A-303', name:'Level 3 – Fitout Details',      rev:'Rev A', status:'For Review', uploaded:'10 May 2026', markups:1 },
+      ...(S.dwgSampleAdded ? [{ num:'A-4', name:'Main Floor Plan', rev:'Oct 2018', status:'Current', uploaded:'3 Jun 2026', markups:0, sample:true }] : []),
     ]},
     { name: 'STRUCTURAL', sheets: [
       { num:'S-001', name:'Footing Layout Plan',            rev:'Rev C', status:'Current',    uploaded:'8 May 2026',  markups:0 },
@@ -2314,10 +2315,10 @@ function vConDrawings() {
         <!-- Rows -->
         ${allSheets.map((s,i) => `
         <div data-open-drawing="${i}" style="display:grid;grid-template-columns:110px 1fr 130px 90px 110px 90px 110px;padding:12px 18px;border-bottom:${i < allSheets.length-1 ? '1px solid var(--border)' : 'none'};cursor:pointer;transition:background .1s" onmouseover="this.style.background='#f8f9fb'" onmouseout="this.style.background='white'">
-          <div style="font-size:12px;font-weight:700;color:var(--text)">${s.num}</div>
+          <div style="font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:5px">${s.num}${s.sample?`<span style="font-size:9px;background:#f0fdf4;color:#16a34a;border:1px solid #86efac;border-radius:5px;padding:1px 5px;font-weight:600">NEW</span>`:''}</div>
           <div style="font-size:12px;color:var(--text);font-weight:500;padding-right:12px">${s.name}</div>
           <div><span style="font-size:10px;font-weight:600;color:var(--text-3);background:#f0f1f5;padding:2px 8px;border-radius:6px">${s.discipline}</span></div>
-          <div><span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;background:${s.rev==='Rev C'?'rgba(101,89,255,.1)':s.rev==='Rev B'?'rgba(245,158,11,.1)':'#f0f1f5'};color:${s.rev==='Rev C'?'var(--purple)':s.rev==='Rev B'?'#d97706':'var(--text-3)'}">${s.rev}</span></div>
+          <div><span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;background:${s.rev.startsWith('Rev D')||s.rev==='Rev C'?'rgba(101,89,255,.1)':s.rev==='Rev B'?'rgba(245,158,11,.1)':'#f0f1f5'};color:${s.rev.startsWith('Rev D')||s.rev==='Rev C'?'var(--purple)':s.rev==='Rev B'?'#d97706':'var(--text-3)'}">${s.rev}</span></div>
           <div style="display:flex;align-items:center;gap:5px">
             <span style="width:6px;height:6px;border-radius:50%;background:${stCol[s.status]};flex-shrink:0"></span>
             <span style="font-size:11px;font-weight:600;color:${stCol[s.status]}">${s.status}</span>
@@ -4940,7 +4941,19 @@ function dwgUploadModal() {
         <div style="font-size:12px;color:#9ca3af">Supports PDF, PNG, JPG</div>
       </div>
       <input type="file" id="dwg-file-input" accept=".pdf,.png,.jpg" style="display:none">
-      <div style="display:flex;justify-content:flex-end;margin-top:18px">
+      <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
+        <div style="flex:1;height:1px;background:#e5e7eb"></div>
+        <span style="font-size:11px;color:#9ca3af">or</span>
+        <div style="flex:1;height:1px;background:#e5e7eb"></div>
+      </div>
+      <div style="background:#f5f3ff;border:1.5px solid #e0dcff;border-radius:12px;padding:12px 16px;margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#6559FF;margin-bottom:2px">🏗 Sample drawing included</div>
+          <div style="font-size:12px;color:#6b7280">Main Floor Plan — Custom Residential (1,384 sq ft)</div>
+        </div>
+        <button id="dwg-use-sample" class="btn btn-sm" style="background:#6559FF;color:white;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">Use sample →</button>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:14px">
         <button id="dwg-close-upload" class="btn btn-o btn-sm">Cancel</button>
       </div>`;
   } else if (S.dwgUploadStep === 1) {
@@ -4958,30 +4971,69 @@ function dwgUploadModal() {
         }).join('')}
       </div>`;
   } else if (S.dwgUploadStep === 2) {
-    body = `
-      <h2 style="font-size:17px;font-weight:700;color:#111827;margin-bottom:4px">AI Extracted — Title Block</h2>
-      <p style="font-size:12px;color:#6b7280;margin-bottom:2px">Review the extracted data before uploading.</p>
-      <div class="dwg-field-grid">
-        <div class="dwg-field"><div class="dwg-field-label">Drawing No.</div><div class="dwg-field-value">A-301</div></div>
-        <div class="dwg-field"><div class="dwg-field-label">Title</div><div class="dwg-field-value">Level 3 – Floor Plan</div></div>
-        <div class="dwg-field"><div class="dwg-field-label">Revision</div><div class="dwg-field-value"><span style="background:rgba(101,89,255,.12);color:#6559FF;padding:2px 10px;border-radius:8px;font-size:13px;font-weight:700">Rev D</span></div></div>
-        <div class="dwg-field"><div class="dwg-field-label">Date</div><div class="dwg-field-value">3 Jun 2026</div></div>
-        <div class="dwg-field"><div class="dwg-field-label">Scale</div><div class="dwg-field-value">1:100</div></div>
-        <div class="dwg-field"><div class="dwg-field-label">Discipline</div><div class="dwg-field-value">ARCHITECTURAL</div></div>
-        <div class="dwg-field"><div class="dwg-field-label">Project</div><div class="dwg-field-value">North Harbour Residential</div></div>
-        <div class="dwg-field"><div class="dwg-field-label">Drawn by</div><div class="dwg-field-value">M. Nguyen</div></div>
-        <div class="dwg-field"><div class="dwg-field-label">Approved</div><div class="dwg-field-value">B. Harrison</div></div>
-        <div class="dwg-field"><div class="dwg-field-label">Status</div><div class="dwg-field-value">Issued for Construction</div></div>
-      </div>
-      <div style="background:#fffbeb;border:1.5px solid #f59e0b;border-radius:12px;padding:13px 15px;margin:12px 0;font-size:13px;color:#92400e;line-height:1.5">
-        ⚠️ <strong>Revision detected</strong> — Drawing A-301 already exists in the register at <strong>Rev C</strong> (uploaded 8 May 2026). This upload will version over Rev C — it will be retained as a superseded revision.
-      </div>
-      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
-        <button id="dwg-close-upload" class="btn btn-o btn-sm">Cancel</button>
-        <button id="dwg-confirm-upload" class="btn btn-sm" style="background:#16a34a;color:white;border:none;border-radius:8px;padding:8px 18px;font-weight:600;cursor:pointer">Version &amp; Upload ✓</button>
-      </div>`;
+    if (S.dwgSampleMode) {
+      // Real sample drawing — Mark Stewart Main Floor Plan
+      body = `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <img src="./sample-drawing.jpg" style="width:80px;height:56px;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;flex-shrink:0" onerror="this.style.display='none'">
+          <div>
+            <h2 style="font-size:16px;font-weight:700;color:#111827;margin-bottom:2px">AI Extracted — Title Block</h2>
+            <p style="font-size:12px;color:#6b7280">Main_Floor_Plan_Custom_Oct2018.jpg · 486 KB</p>
+          </div>
+        </div>
+        <div class="dwg-field-grid">
+          <div class="dwg-field"><div class="dwg-field-label">Drawing No.</div><div class="dwg-field-value">A-4</div></div>
+          <div class="dwg-field"><div class="dwg-field-label">Title</div><div class="dwg-field-value">Main Floor Plan</div></div>
+          <div class="dwg-field"><div class="dwg-field-label">Revision</div><div class="dwg-field-value"><span style="background:rgba(101,89,255,.12);color:#6559FF;padding:2px 10px;border-radius:8px;font-size:13px;font-weight:700">Oct 2018</span></div></div>
+          <div class="dwg-field"><div class="dwg-field-label">Scale</div><div class="dwg-field-value">1/4" = 1'-0"</div></div>
+          <div class="dwg-field"><div class="dwg-field-label">Area</div><div class="dwg-field-value">1,384 sq ft</div></div>
+          <div class="dwg-field"><div class="dwg-field-label">Discipline</div><div class="dwg-field-value">ARCHITECTURAL</div></div>
+          <div class="dwg-field"><div class="dwg-field-label">Project</div><div class="dwg-field-value">Custom Residential</div></div>
+          <div class="dwg-field"><div class="dwg-field-label">Drawn by</div><div class="dwg-field-value">Mark Stewart Home Design</div></div>
+          <div class="dwg-field"><div class="dwg-field-label">Page</div><div class="dwg-field-value">4 of 7</div></div>
+          <div class="dwg-field"><div class="dwg-field-label">Status</div><div class="dwg-field-value">Issued for Construction</div></div>
+        </div>
+        <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:12px 15px;margin:12px 0;font-size:13px;color:#166534;line-height:1.5">
+          ✅ <strong>New drawing</strong> — A-4 is not currently in the register. It will be added to the <strong>Architectural</strong> folder.
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+          <button id="dwg-close-upload" class="btn btn-o btn-sm">Cancel</button>
+          <button id="dwg-confirm-upload" class="btn btn-sm" style="background:#16a34a;color:white;border:none;border-radius:8px;padding:8px 18px;font-weight:600;cursor:pointer">Add to Register ✓</button>
+        </div>`;
+    } else {
+      body = `
+        <h2 style="font-size:17px;font-weight:700;color:#111827;margin-bottom:4px">AI Extracted — Title Block</h2>
+        <p style="font-size:12px;color:#6b7280;margin-bottom:2px">Review the extracted data before uploading.</p>
+        <div class="dwg-field-grid">
+          <div class="dwg-field"><div class="dwg-field-label">Drawing No.</div><div class="dwg-field-value">A-301</div></div>
+          <div class="dwg-field"><div class="dwg-field-label">Title</div><div class="dwg-field-value">Level 3 – Floor Plan</div></div>
+          <div class="dwg-field"><div class="dwg-field-label">Revision</div><div class="dwg-field-value"><span style="background:rgba(101,89,255,.12);color:#6559FF;padding:2px 10px;border-radius:8px;font-size:13px;font-weight:700">Rev D</span></div></div>
+          <div class="dwg-field"><div class="dwg-field-label">Date</div><div class="dwg-field-value">3 Jun 2026</div></div>
+          <div class="dwg-field"><div class="dwg-field-label">Scale</div><div class="dwg-field-value">1:100</div></div>
+          <div class="dwg-field"><div class="dwg-field-label">Discipline</div><div class="dwg-field-value">ARCHITECTURAL</div></div>
+          <div class="dwg-field"><div class="dwg-field-label">Project</div><div class="dwg-field-value">North Harbour Residential</div></div>
+          <div class="dwg-field"><div class="dwg-field-label">Drawn by</div><div class="dwg-field-value">M. Nguyen</div></div>
+          <div class="dwg-field"><div class="dwg-field-label">Approved</div><div class="dwg-field-value">B. Harrison</div></div>
+          <div class="dwg-field"><div class="dwg-field-label">Status</div><div class="dwg-field-value">Issued for Construction</div></div>
+        </div>
+        <div style="background:#fffbeb;border:1.5px solid #f59e0b;border-radius:12px;padding:13px 15px;margin:12px 0;font-size:13px;color:#92400e;line-height:1.5">
+          ⚠️ <strong>Revision detected</strong> — Drawing A-301 already exists in the register at <strong>Rev C</strong> (uploaded 8 May 2026). This upload will version over Rev C — it will be retained as a superseded revision.
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+          <button id="dwg-close-upload" class="btn btn-o btn-sm">Cancel</button>
+          <button id="dwg-confirm-upload" class="btn btn-sm" style="background:#16a34a;color:white;border:none;border-radius:8px;padding:8px 18px;font-weight:600;cursor:pointer">Version &amp; Upload ✓</button>
+        </div>`;
+    }
   } else if (S.dwgUploadStep === 3) {
-    body = `
+    body = S.dwgSampleMode ? `
+      <div style="text-align:center;padding:20px 10px">
+        <div style="width:64px;height:64px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:30px">✅</div>
+        <h2 style="font-size:18px;font-weight:700;color:#111827;margin-bottom:6px">Drawing added to register</h2>
+        <p style="font-size:13px;color:#6b7280;margin-bottom:4px"><strong>A-4 — Main Floor Plan</strong> is now in the register.</p>
+        <p style="font-size:13px;color:#6b7280;margin-bottom:4px">Added to: <strong>Architectural</strong> folder</p>
+        <p style="font-size:12px;color:#9ca3af;margin-bottom:22px">Mark Stewart Home Design · Oct 2018 · 1,384 sq ft</p>
+        <button id="dwg-close-upload" class="btn btn-c btn-sm">View in Register</button>
+      </div>` : `
       <div style="text-align:center;padding:20px 10px">
         <div style="width:64px;height:64px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:30px">✅</div>
         <h2 style="font-size:18px;font-weight:700;color:#111827;margin-bottom:6px">Drawing uploaded and versioned</h2>
@@ -5240,6 +5292,12 @@ function vMobile() {
       DWG_FOLDERS[0].sheets[0].rev = 'Rev ' + S.dwgLatestRev;
       DWG_FOLDERS[0].sheets[0].uploaded = '3 Jun 2026';
     }
+    // Add sample drawing A-4 if added
+    if (S.dwgSampleAdded) {
+      DWG_FOLDERS[0].sheets.push({ num:'A-4', name:'Main Floor Plan', rev:'Oct 2018', prevRev:null, status:'Current', uploaded:'3 Jun 2026', sample:true });
+      DWG_FOLDERS[0].count = 'A-301 to A-4';
+      DWG_FOLDERS[0].date = '3 Jun 2026';
+    }
 
     const stCol = { Current:'#16a34a', 'For Review':'#d97706', Superseded:'#9ca3af' };
 
@@ -5410,7 +5468,11 @@ function vMobile() {
         <text x="360" y="432" font-size="7" fill="#666" font-family="Courier New, monospace">Rev A  ·  STRUCTURAL</text>
       </svg>`;
 
-      const svgContent = doc.num === 'A-301' ? svgA301 : svgGeneric(doc.num, doc.name);
+      // Real image viewer for sample drawing A-4
+      const svgContentA4 = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#1a1a2e;transform:scale(${zoom});transform-origin:center center;transition:transform .2s">
+        <img src="./sample-drawing.jpg" alt="Main Floor Plan" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:4px" onerror="this.parentElement.innerHTML='<div style=\\'color:#9ca3af;text-align:center;padding:40px;font-size:12px\\'>📄 Main Floor Plan<br>A-4 · Oct 2018</div>'">
+      </div>`;
+      const svgContent = doc.num === 'A-301' ? svgA301 : doc.num === 'A-4' ? svgContentA4 : svgGeneric(doc.num, doc.name);
 
       const infoPanel = `<div class="mob-dwg-info-panel ${showInfo?'open':''}" id="mob-dwg-info-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
@@ -5422,10 +5484,11 @@ function vMobile() {
           <div><div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Title</div><div style="font-size:12px;font-weight:600;color:#111">${doc.name}</div></div>
           <div><div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Revision</div><div style="font-size:12px;font-weight:600;color:#6559FF">${doc.rev}</div></div>
           <div><div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Date</div><div style="font-size:12px;font-weight:600;color:#111">${doc.uploaded}</div></div>
-          <div><div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Scale</div><div style="font-size:12px;font-weight:600;color:#111">1:100</div></div>
+          <div><div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Scale</div><div style="font-size:12px;font-weight:600;color:#111">${doc.num === 'A-4' ? '1/4" = 1\'-0"' : '1:100'}</div></div>
           <div><div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Discipline</div><div style="font-size:12px;font-weight:600;color:#111">${folder.label.toUpperCase()}</div></div>
-          <div><div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Project</div><div style="font-size:12px;font-weight:600;color:#111">North Harbour Residential</div></div>
-          <div><div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Approved by</div><div style="font-size:12px;font-weight:600;color:#111">B. Harrison</div></div>
+          <div><div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Project</div><div style="font-size:12px;font-weight:600;color:#111">${doc.num === 'A-4' ? 'Custom Residential' : 'North Harbour Residential'}</div></div>
+          <div><div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">${doc.num === 'A-4' ? 'Drawn by' : 'Approved by'}</div><div style="font-size:12px;font-weight:600;color:#111">${doc.num === 'A-4' ? 'Mark Stewart Home Design' : 'B. Harrison'}</div></div>
+          ${doc.num === 'A-4' ? `<div><div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Area</div><div style="font-size:12px;font-weight:600;color:#111">1,384 sq ft</div></div><div><div style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Page</div><div style="font-size:12px;font-weight:600;color:#111">4 of 7</div></div>` : ''}
         </div>
         ${doc.num === 'A-301' ? `<div style="border-top:1px solid #e5e7eb;padding-top:12px">
           <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:8px">Revision History</div>
@@ -5434,6 +5497,9 @@ function vMobile() {
             <span style="background:#f0f1f5;color:#6b7280;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600">Rev C — Superseded</span>
             <span style="background:#f0f1f5;color:#6b7280;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600">Rev B — Superseded</span>
           </div>
+        </div>` : doc.num === 'A-4' ? `<div style="border-top:1px solid #e5e7eb;padding-top:12px">
+          <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:6px">AI Extracted Notes</div>
+          <div style="font-size:11px;color:#6b7280;line-height:1.5">Miscellaneous notes, electrical legend, exhaust fan legend, bearing wall legend and post/column size chart detected. 9 callout regions extracted.</div>
         </div>` : ''}
       </div>`;
 
@@ -6204,7 +6270,7 @@ function render() {
   // ── Drawing Upload Modal handlers ───────────────────────────
   document.getElementById('dwg-upload-btn')?.addEventListener('click', e => {
     e.stopPropagation();
-    S = { ...S, dwgUploadOpen: true, dwgUploadStep: 0, dwgProcessingIdx: 0 };
+    S = { ...S, dwgUploadOpen: true, dwgUploadStep: 0, dwgProcessingIdx: 0, dwgSampleMode: false };
     render();
   });
 
@@ -6215,9 +6281,24 @@ function render() {
     }
   });
 
+  document.getElementById('dwg-use-sample')?.addEventListener('click', e => {
+    e.stopPropagation();
+    S = { ...S, dwgUploadStep: 1, dwgProcessingIdx: 0, dwgSampleMode: true };
+    render();
+    let idx = 0;
+    function advanceSample() {
+      idx++;
+      S = { ...S, dwgProcessingIdx: idx };
+      render();
+      if (idx < 5) setTimeout(advanceSample, 900);
+      else setTimeout(() => { S = { ...S, dwgUploadStep: 2 }; render(); }, 900);
+    }
+    setTimeout(advanceSample, 900);
+  });
+
   document.getElementById('dwg-file-input')?.addEventListener('change', e => {
     if (!e.target.files || !e.target.files.length) return;
-    S = { ...S, dwgUploadStep: 1, dwgProcessingIdx: 0 };
+    S = { ...S, dwgUploadStep: 1, dwgProcessingIdx: 0, dwgSampleMode: false };
     render();
     let idx = 0;
     function advanceProcessing() {
@@ -6234,7 +6315,11 @@ function render() {
 
   document.getElementById('dwg-confirm-upload')?.addEventListener('click', e => {
     e.stopPropagation();
-    S = { ...S, dwgUploadStep: 3, dwgLatestRev: 'D' };
+    if (S.dwgSampleMode) {
+      S = { ...S, dwgUploadStep: 3, dwgSampleAdded: true };
+    } else {
+      S = { ...S, dwgUploadStep: 3, dwgLatestRev: 'D' };
+    }
     render();
   });
 
